@@ -276,6 +276,8 @@ public class TemplateEditor extends JFrame {
         dataPanel.setJsonStatusSink(this::applyDataModelJsonStatus);
         dataPanel.refreshJsonValidationStatus();
 
+        expectedFieldsPanel.setStatusBarSink((msg, color) -> setStatusBarText("Expected fields · " + msg, color));
+
         // Add to main panel
         addMainPanelComponents();
 
@@ -285,6 +287,17 @@ public class TemplateEditor extends JFrame {
     private void addMainPanelComponents() {
         mainPanel.add(mainSplitPane, BorderLayout.CENTER);
         mainPanel.add(statusBar, BorderLayout.SOUTH);
+    }
+
+    private void setStatusBarText(String fullText, Color color) {
+        statusBarLabel.setForeground(color);
+        if (fullText.length() <= STATUS_BAR_MAX_CHARS) {
+            statusBarLabel.setText(fullText);
+            statusBarLabel.setToolTipText(null);
+        } else {
+            statusBarLabel.setText(fullText.substring(0, STATUS_BAR_MAX_CHARS - 1) + "…");
+            statusBarLabel.setToolTipText(fullText);
+        }
     }
 
     private void applyDataModelJsonStatus(JsonSyntaxCheck check) {
@@ -309,15 +322,7 @@ public class TemplateEditor extends JFrame {
             color = new Color(0, 128, 0);
             detail = "JSON is valid";
         }
-        String fullText = "Data model · " + detail;
-        statusBarLabel.setForeground(color);
-        if (fullText.length() <= STATUS_BAR_MAX_CHARS) {
-            statusBarLabel.setText(fullText);
-            statusBarLabel.setToolTipText(null);
-        } else {
-            statusBarLabel.setText(fullText.substring(0, STATUS_BAR_MAX_CHARS - 1) + "…");
-            statusBarLabel.setToolTipText(fullText);
-        }
+        setStatusBarText("Data model · " + detail, color);
     }
 
     // Groups and adds left-side components (template area)

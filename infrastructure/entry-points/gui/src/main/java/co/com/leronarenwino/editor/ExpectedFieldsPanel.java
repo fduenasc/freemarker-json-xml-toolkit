@@ -22,11 +22,13 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.function.BiConsumer;
 
 public class ExpectedFieldsPanel extends EditorPanel {
     private static ExpectedFieldsPanel instance;
     private JButton validateFieldsButton;
     private JLabel validationResultLabel;
+    private BiConsumer<String, Color> statusBarSink;
 
     private ExpectedFieldsPanel() {
         super("Expected fields");
@@ -73,6 +75,13 @@ public class ExpectedFieldsPanel extends EditorPanel {
         return validateFieldsButton;
     }
 
+    /**
+     * Optional sink for the main window status bar (message without category prefix).
+     */
+    public void setStatusBarSink(BiConsumer<String, Color> sink) {
+        this.statusBarSink = sink;
+    }
+
     public void validateFields(String output) {
         if (output.contains("\\\"")) {
             output = output.replace("\\\"", "\"");
@@ -80,8 +89,11 @@ public class ExpectedFieldsPanel extends EditorPanel {
 
         String expectedFieldsText = textArea.getText();
         if (expectedFieldsText.trim().isEmpty()) {
-            validationResultLabel.setText("No expected fields specified");
-            validationResultLabel.setForeground(Color.GRAY);
+            String msg = "No expected fields specified";
+            Color c = Color.GRAY;
+            validationResultLabel.setText(msg);
+            validationResultLabel.setForeground(c);
+            emitStatusBar(msg, c);
             return;
         }
 
@@ -89,15 +101,30 @@ public class ExpectedFieldsPanel extends EditorPanel {
         try {
             java.util.List<String> missing = TemplateUtils.validateFields(output, expectedFields);
             if (missing.isEmpty()) {
-                validationResultLabel.setText("All expected fields are present");
-                validationResultLabel.setForeground(new java.awt.Color(0, 128, 0));
+                String msg = "All expected fields are present";
+                Color c = new Color(0, 128, 0);
+                validationResultLabel.setText(msg);
+                validationResultLabel.setForeground(c);
+                emitStatusBar(msg, c);
             } else {
-                validationResultLabel.setText("Missing fields: " + String.join(", ", missing));
-                validationResultLabel.setForeground(java.awt.Color.RED);
+                String msg = "Missing fields: " + String.join(", ", missing);
+                Color c = Color.RED;
+                validationResultLabel.setText(msg);
+                validationResultLabel.setForeground(c);
+                emitStatusBar(msg, c);
             }
         } catch (Exception e) {
-            validationResultLabel.setText("Invalid JSON output");
-            validationResultLabel.setForeground(java.awt.Color.RED);
+            String msg = "Invalid JSON output";
+            Color c = Color.RED;
+            validationResultLabel.setText(msg);
+            validationResultLabel.setForeground(c);
+            emitStatusBar(msg, c);
+        }
+    }
+
+    private void emitStatusBar(String message, Color color) {
+        if (statusBarSink != null) {
+            statusBarSink.accept(message, color);
         }
     }
 }
