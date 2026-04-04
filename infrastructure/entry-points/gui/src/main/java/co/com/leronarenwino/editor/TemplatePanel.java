@@ -17,8 +17,9 @@
 
 package co.com.leronarenwino.editor;
 
+import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxConstants;
+import co.com.leronarenwino.editor.syntax.FreemarkerTemplateSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,8 +43,9 @@ public class TemplatePanel extends EditorPanel {
 
     @Override
     protected void setComponents() {
-        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_HTML);
+        textArea.setSyntaxEditingStyle(FreemarkerSyntaxConstants.SYNTAX_STYLE_FREEMARKER);
         textArea.setCodeFoldingEnabled(true);
+        textArea.addParser(new FreemarkerTemplateSyntaxParser());
         textArea.setLineWrap(isWrapEnabled);
         textArea.setWrapStyleWord(isWrapEnabled);
         textArea.setHighlightCurrentLine(false);

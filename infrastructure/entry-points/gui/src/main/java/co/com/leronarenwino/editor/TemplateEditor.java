@@ -19,15 +19,20 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.FreemarkerProcessor;
 import co.com.leronarenwino.TemplateValidator;
+import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxSupport;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import utils.SettingsSingleton;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static co.com.leronarenwino.TemplateValidator.formatFreemarkerTemplateCombined;
 import static co.com.leronarenwino.editor.TemplateUtils.formatJsonSafely;
@@ -38,6 +43,8 @@ import static utils.SettingsSingleton.defaultAppProperties;
 import static utils.SettingsSingleton.setSettingsFromProperties;
 
 public class TemplateEditor extends JFrame {
+
+    private static final Logger LOG = Logger.getLogger(TemplateEditor.class.getName());
 
     // Main container panel
     private JPanel mainPanel;
@@ -80,6 +87,8 @@ public class TemplateEditor extends JFrame {
 
 
     public TemplateEditor() {
+        FreemarkerSyntaxSupport.register();
+
         // Disable FlatLaf custom window decorations globally
         System.setProperty("flatlaf.useWindowDecorations", "false");
 
@@ -177,18 +186,7 @@ public class TemplateEditor extends JFrame {
         mainSplitPane.setOneTouchExpandable(false);
 
         mainSplitPane.setBorder(null);
-        mainSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
-            @Override
-            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
-                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
-                    @Override
-                    public void paint(Graphics g) {
-                        g.setColor(UIManager.getColor("Component.borderColor"));
-                        g.fillRect(0, 0, getSize().width, getSize().height);
-                    }
-                };
-            }
-        });
+        mainSplitPane.setUI(createMainSplitPaneUi());
 
         // Left and right panels setup
         leftPanel.setLayout(new BorderLayout(5, 5));
@@ -291,8 +289,8 @@ public class TemplateEditor extends JFrame {
         for (RSyntaxTextArea area : textAreas) {
             try {
                 UiConfig.applyRSyntaxTheme(area, themePath, parent);
-            } catch (Exception ignored) {
-
+            } catch (Exception ex) {
+                LOG.log(Level.WARNING, "Could not apply RSyntaxTextArea theme: " + themePath, ex);
             }
         }
     }
@@ -366,13 +364,16 @@ public class TemplateEditor extends JFrame {
     }
 
     public void updateSplitPaneUI() {
-        mainSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
+        mainSplitPane.setUI(createMainSplitPaneUi());
+    }
+
+    private static BasicSplitPaneUI createMainSplitPaneUi() {
+        return new BasicSplitPaneUI() {
             @Override
-            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
-                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+            public BasicSplitPaneDivider createDefaultDivider() {
+                return new BasicSplitPaneDivider(this) {
                     @Override
                     public void paint(Graphics g) {
-                        // Obtener el color dinámicamente
                         Color dividerColor = UIManager.getColor("Component.borderColor");
                         if (dividerColor == null) {
                             dividerColor = UIManager.getColor("Separator.foreground");
@@ -385,7 +386,7 @@ public class TemplateEditor extends JFrame {
                     }
                 };
             }
-        });
+        };
     }
 
 }

@@ -5,6 +5,7 @@ dependencies {
     implementation project(':freemarker-adapter')
     implementation project(':global-settings')
 
+    implementation 'org.freemarker:freemarker:2.3.34'
     implementation 'com.fifesoft:rsyntaxtextarea:3.6.0'
     implementation "com.formdev:flatlaf:${flatlafVersion}"
     implementation "com.formdev:flatlaf-intellij-themes:${flatlafVersion}"
