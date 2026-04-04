@@ -40,7 +40,7 @@ public abstract class EditorPanel extends JPanel {
 
     public EditorPanel(String labelText) {
         setLayout(new BorderLayout());
-        textArea = new RSyntaxTextArea();
+        textArea = new MarkupBracketRSyntaxTextArea();
         scrollPane = new RTextScrollPane(textArea, true);
         positionLabel = new JLabel("1:1");
         bottomPanel = new JPanel();

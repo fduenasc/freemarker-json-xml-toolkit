@@ -26,8 +26,13 @@ import javax.swing.text.Segment;
 
 /**
  * Syntax highlighting for FreeMarker templates mixed with markup (HTML/XML-style).
+ * Aligns with the <a href="https://freemarker.apache.org/docs/dgui_template_exp.html">expression syntax</a>
+ * (ranges, built-ins, raw strings, square-bracket comments, etc.).
  */
 public class FreemarkerTokenMaker extends AbstractTokenMaker {
+
+    /** Continuation of {@code [#-- ... --]} across lines (see {@link Token#COMMENT_DOCUMENTATION}). */
+    private static final int FM_BRACKET_COMMENT = Token.COMMENT_DOCUMENTATION;
 
     @Override
     public TokenMap getWordsToHighlight() {
@@ -38,7 +43,7 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 "assign", "global", "local", "include", "import", "macro", "function",
                 "return", "attempt", "recover", "compress", "noautoesc", "autoesc",
                 "escape", "noescape", "noparse", "setting", "visit", "recurse", "fallback",
-                "items", "transform", "stop", "flush", "lt", "rt", "t", "nt", "gt",
+                "items", "transform", "stop", "flush", "lt", "lte", "rt", "t", "nt", "gt", "gte",
         };
         for (String w : words) {
             map.put(w, Token.RESERVED_WORD);
@@ -89,6 +94,17 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 i = close + 3;
             } else {
                 addToken(text, i, end - 1, Token.COMMENT_MULTILINE, newStartOffset + i);
+                return firstToken;
+            }
+        }
+
+        if (initialTokenType == FM_BRACKET_COMMENT) {
+            int close = indexOf(array, i, end, "--]");
+            if (close >= 0) {
+                addToken(text, i, close + 2, FM_BRACKET_COMMENT, newStartOffset + i);
+                i = close + 3;
+            } else {
+                addToken(text, i, end - 1, FM_BRACKET_COMMENT, newStartOffset + i);
                 return firstToken;
             }
         }
@@ -176,6 +192,22 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 continue;
             }
 
+            if (c == '[' && i + 3 < end && array[i + 1] == '#' && array[i + 2] == '-' && array[i + 3] == '-') {
+                flushRun(text, tokenStart, i, newStartOffset);
+                int commentStart = i;
+                i += 4;
+                int close = indexOf(array, i, end, "--]");
+                if (close >= 0) {
+                    addToken(text, commentStart, close + 2, FM_BRACKET_COMMENT, newStartOffset + commentStart);
+                    i = close + 3;
+                } else {
+                    addToken(text, commentStart, end - 1, FM_BRACKET_COMMENT, newStartOffset + commentStart);
+                    return firstToken;
+                }
+                tokenStart = i;
+                continue;
+            }
+
             if (c == '[' && i + 1 < end && array[i + 1] == '=') {
                 flushRun(text, tokenStart, i, newStartOffset);
                 int closeBracket = consumeBracketOutput(array, i, end);
@@ -211,6 +243,23 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                     i = end;
                 }
                 tokenStart = i;
+                continue;
+            }
+
+            if ((c == 'r' || c == 'R') && i + 1 < end && (array[i + 1] == '"' || array[i + 1] == '\'')) {
+                flushRun(text, tokenStart, i, newStartOffset);
+                char quote = array[i + 1];
+                int strEnd = consumeRawStringEnd(array, i + 1, end, quote);
+                int stringType = quote == '"' ? Token.LITERAL_STRING_DOUBLE_QUOTE : Token.LITERAL_CHAR;
+                int errorType = quote == '"' ? Token.ERROR_STRING_DOUBLE : Token.ERROR_CHAR;
+                if (strEnd < end && array[strEnd] == quote) {
+                    addToken(text, i, strEnd, stringType, newStartOffset + i);
+                    i = strEnd + 1;
+                    tokenStart = i;
+                } else {
+                    addToken(text, i, end - 1, errorType, newStartOffset + i);
+                    return firstToken;
+                }
                 continue;
             }
 
@@ -356,6 +405,22 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 continue;
             }
 
+            if (c == '[' && i + 3 < toExclusive && array[i + 1] == '#' && array[i + 2] == '-' && array[i + 3] == '-') {
+                flushRun(text, tokenStart, i, newStartOffset);
+                int commentStart = i;
+                i += 4;
+                int close = indexOf(array, i, toExclusive, "--]");
+                if (close >= 0) {
+                    addToken(text, commentStart, close + 2, FM_BRACKET_COMMENT, newStartOffset + commentStart);
+                    i = close + 3;
+                } else {
+                    addToken(text, commentStart, toExclusive - 1, FM_BRACKET_COMMENT, newStartOffset + commentStart);
+                    i = toExclusive;
+                }
+                tokenStart = i;
+                continue;
+            }
+
             if (c == '$' && i + 1 < toExclusive && array[i + 1] == '{') {
                 flushRun(text, tokenStart, i, newStartOffset);
                 int exprEnd = consumeInterpolation(array, i, toExclusive);
@@ -380,6 +445,45 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 addBracketOutputTokens(text, array, i, closeBracket, newStartOffset);
                 i = closeBracket + 1;
                 tokenStart = i;
+                continue;
+            }
+
+            if (c == '?') {
+                flushRun(text, tokenStart, i, newStartOffset);
+                addToken(text, i, i, Token.OPERATOR, newStartOffset + i);
+                i++;
+                if (i < toExclusive && array[i] == '?') {
+                    addToken(text, i, i, Token.OPERATOR, newStartOffset + i);
+                    i++;
+                    tokenStart = i;
+                    continue;
+                }
+                if (i < toExclusive && (RSyntaxUtilities.isLetter(array[i]) || array[i] == '_')) {
+                    int bStart = i;
+                    i++;
+                    while (i < toExclusive && isBuiltinNamePart(array[i])) {
+                        i++;
+                    }
+                    addToken(text, bStart, i - 1, Token.RESERVED_WORD_2, newStartOffset + bStart);
+                }
+                tokenStart = i;
+                continue;
+            }
+
+            if ((c == 'r' || c == 'R') && i + 1 < toExclusive && (array[i + 1] == '"' || array[i + 1] == '\'')) {
+                flushRun(text, tokenStart, i, newStartOffset);
+                char quote = array[i + 1];
+                int strEnd = consumeRawStringEnd(array, i + 1, toExclusive, quote);
+                int stringType = quote == '"' ? Token.LITERAL_STRING_DOUBLE_QUOTE : Token.LITERAL_CHAR;
+                if (strEnd < toExclusive && array[strEnd] == quote) {
+                    addToken(text, i, strEnd, stringType, newStartOffset + i);
+                    i = strEnd + 1;
+                    tokenStart = i;
+                } else {
+                    addToken(text, i, toExclusive - 1, quote == '"' ? Token.ERROR_STRING_DOUBLE : Token.ERROR_CHAR, newStartOffset + i);
+                    i = toExclusive;
+                    tokenStart = i;
+                }
                 continue;
             }
 
@@ -419,7 +523,7 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
             }
 
             flushRun(text, tokenStart, i, newStartOffset);
-            int opLen = operatorLength(array, i, toExclusive);
+            int opLen = ftlOperatorLength(array, i, toExclusive);
             if (opLen > 1) {
                 addToken(text, i, i + opLen - 1, Token.OPERATOR, newStartOffset + i);
                 i += opLen;
@@ -432,16 +536,76 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
         flushRun(text, tokenStart, i, newStartOffset);
     }
 
-    private static int separatorOrOperator(char c) {
-        return switch (c) {
-            case '+', '-', '*', '/', '%', '!', '?', ':', '|', '^', '~' -> Token.OPERATOR;
-            default -> Token.SEPARATOR;
-        };
+    private static boolean isBuiltinNamePart(char c) {
+        return RSyntaxUtilities.isLetterOrDigit(c) || c == '_';
     }
 
-    private static int operatorLength(char[] array, int i, int end) {
+    /**
+     * Raw string literals: {@code r"..."} / {@code r'...'} — no escape sequences ({@code \} is literal).
+     */
+    private static int consumeRawStringEnd(char[] array, int quoteIndex, int end, char quote) {
+        int j = quoteIndex + 1;
+        while (j < end) {
+            if (array[j] == quote) {
+                return j;
+            }
+            j++;
+        }
+        return end;
+    }
+
+    private static boolean startsWith(char[] array, int i, int end, String s) {
+        if (i + s.length() > end) {
+            return false;
+        }
+        for (int k = 0; k < s.length(); k++) {
+            if (array[i + k] != s.charAt(k)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * FreeMarker operators: ranges ({@code ..}, {@code ..<}, {@code ..!}, {@code ..*}), lambdas ({@code ->}),
+     * XML-friendly ({@code &lt;}, {@code &amp;&amp;}, …), and {@code \and} (2.3.27+).
+     */
+    private static int ftlOperatorLength(char[] array, int i, int end) {
         if (i + 1 >= end) {
             return 1;
+        }
+        if (startsWith(array, i, end, "&amp;&amp;")) {
+            return 10;
+        }
+        if (startsWith(array, i, end, "&lt;=")) {
+            return 5;
+        }
+        if (startsWith(array, i, end, "&gt;=")) {
+            return 5;
+        }
+        if (startsWith(array, i, end, "&lt;")) {
+            return 4;
+        }
+        if (startsWith(array, i, end, "&gt;")) {
+            return 4;
+        }
+        if (startsWith(array, i, end, "\\and")) {
+            return 4;
+        }
+        if (i + 2 < end && array[i] == '.' && array[i + 1] == '.' && array[i + 2] == '*') {
+            return 3;
+        }
+        if (i + 2 < end && array[i] == '.' && array[i + 1] == '.' && array[i + 2] == '<') {
+            return 3;
+        }
+        if (i + 2 < end && array[i] == '.' && array[i + 1] == '.' && array[i + 2] == '!') {
+            return 3;
+        }
+        if (array[i] == '.' && array[i + 1] == '.') {
+            return 2;
+        }
+        if (array[i] == '-' && array[i + 1] == '>') {
+            return 2;
         }
         char c = array[i];
         char n = array[i + 1];
@@ -451,10 +615,20 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
         if ((c == '&' && n == '&') || (c == '|' && n == '|')) {
             return 2;
         }
-        if ((c == '+' && n == '+') || (c == '-' && n == '-')) {
+        if (c == '+' && n == '+') {
+            return 2;
+        }
+        if (c == '-' && n == '-') {
             return 2;
         }
         return 1;
+    }
+
+    private static int separatorOrOperator(char c) {
+        return switch (c) {
+            case '+', '-', '*', '/', '%', '!', '?', ':', '|', '^', '~' -> Token.OPERATOR;
+            default -> Token.SEPARATOR;
+        };
     }
 
     private int emitNumericToken(Segment text, char[] array, int start, int lineEnd, int newStartOffset) {
@@ -559,6 +733,18 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
                 int exprEnd = consumeInterpolation(array, i, end);
                 addLegacyInterpolationTokens(text, array, i, exprEnd, newStartOffset);
                 i = exprEnd + 1;
+                continue;
+            }
+            if ((ch == 'r' || ch == 'R') && i + 1 < end && (array[i + 1] == '"' || array[i + 1] == '\'')) {
+                char quote = array[i + 1];
+                int strEnd = consumeRawStringEnd(array, i + 1, end, quote);
+                if (strEnd < end && array[strEnd] == quote) {
+                    addToken(text, i, strEnd, Token.MARKUP_TAG_ATTRIBUTE_VALUE, newStartOffset + i);
+                    i = strEnd + 1;
+                } else {
+                    addToken(text, i, end - 1, quote == '"' ? Token.ERROR_STRING_DOUBLE : Token.ERROR_CHAR, newStartOffset + i);
+                    return end;
+                }
                 continue;
             }
             if (ch == '"' || ch == '\'') {
