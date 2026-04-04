@@ -848,22 +848,32 @@ public class FreemarkerTokenMaker extends AbstractTokenMaker {
     }
 
     /**
-     * Finds the closing {@code >} of a directive or tag, respecting single/double quoted strings.
+     * Finds the closing {@code >} of a directive or tag, respecting single/double quoted strings and
+     * parenthesis nesting so comparisons like {@code (score>100)} or {@code (a>=75)} do not end the directive early.
      */
     private static int consumeDirectiveEnd(char[] array, int start, int end) {
         int i = start;
         boolean inSq = false;
         boolean inDq = false;
+        int parenDepth = 0;
         while (i < end) {
             char c = array[i];
             if (!inSq && !inDq) {
                 if (c == '>') {
-                    return i;
-                }
-                if (c == '"') {
+                    boolean closing = parenDepth == 0
+                            && (i + 1 >= end || array[i + 1] != '=')
+                            && (i <= start || array[i - 1] != '-');
+                    if (closing) {
+                        return i;
+                    }
+                } else if (c == '"') {
                     inDq = true;
                 } else if (c == '\'') {
                     inSq = true;
+                } else if (c == '(') {
+                    parenDepth++;
+                } else if (c == ')' && parenDepth > 0) {
+                    parenDepth--;
                 }
             } else if (inDq) {
                 if (c == '\\' && i + 1 < end) {
