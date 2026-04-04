@@ -19,6 +19,7 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.FreemarkerProcessor;
 import co.com.leronarenwino.TemplateValidator;
+import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxSupport;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
@@ -47,6 +48,11 @@ import static utils.SettingsSingleton.setSettingsFromProperties;
 public class TemplateEditor extends JFrame {
 
     private static final Logger LOG = Logger.getLogger(TemplateEditor.class.getName());
+
+    private static final int STATUS_BAR_MAX_CHARS = 160;
+
+    private JPanel statusBar;
+    private JLabel statusBarLabel;
 
     // Main container panel
     private JPanel mainPanel;
@@ -171,6 +177,11 @@ public class TemplateEditor extends JFrame {
         mainSplitPane.setContinuousLayout(true);
         mainSplitPane.setBorder(null);
 
+        statusBar = new JPanel(new BorderLayout());
+        statusBarLabel = new JLabel(" ");
+        statusBarLabel.setHorizontalAlignment(SwingConstants.LEADING);
+        statusBar.add(statusBarLabel, BorderLayout.CENTER);
+
     }
 
     public void setComponents() {
@@ -189,6 +200,17 @@ public class TemplateEditor extends JFrame {
 
         mainSplitPane.setBorder(null);
         mainSplitPane.setUI(createMainSplitPaneUi());
+
+        Color statusBorder = UIManager.getColor("Component.borderColor");
+        if (statusBorder == null) {
+            statusBorder = UIManager.getColor("Separator.foreground");
+        }
+        if (statusBorder == null) {
+            statusBorder = new Color(0xC8, 0xC8, 0xC8);
+        }
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, statusBorder),
+                BorderFactory.createEmptyBorder(5, 2, 6, 2)));
 
         // Left and right panels setup
         leftPanel.setLayout(new BorderLayout(5, 5));
@@ -251,6 +273,9 @@ public class TemplateEditor extends JFrame {
         outputPanel.getClearOutputButton().addActionListener(e -> outputPanel.getTextArea().setText(""));
         expectedFieldsPanel.getValidateFieldsButton().addActionListener(e -> validateOutputFields());
 
+        dataPanel.setJsonStatusSink(this::applyDataModelJsonStatus);
+        dataPanel.refreshJsonValidationStatus();
+
         // Add to main panel
         addMainPanelComponents();
 
@@ -259,6 +284,40 @@ public class TemplateEditor extends JFrame {
     // Groups and adds all main sections to the mainPanel
     private void addMainPanelComponents() {
         mainPanel.add(mainSplitPane, BorderLayout.CENTER);
+        mainPanel.add(statusBar, BorderLayout.SOUTH);
+    }
+
+    private void applyDataModelJsonStatus(JsonSyntaxCheck check) {
+        Color color;
+        String detail;
+        if (!check.syntaxValid()) {
+            color = Color.RED;
+            StringBuilder sb = new StringBuilder("Invalid JSON");
+            if (check.line() > 0) {
+                sb.append(" (line ").append(check.line());
+                if (check.column() > 0) {
+                    sb.append(", col ").append(check.column());
+                }
+                sb.append(')');
+            }
+            sb.append(": ").append(check.message());
+            detail = sb.toString();
+        } else if (check.message() != null && !check.message().isEmpty()) {
+            color = new Color(180, 120, 0);
+            detail = check.message();
+        } else {
+            color = new Color(0, 128, 0);
+            detail = "JSON is valid";
+        }
+        String fullText = "Data model · " + detail;
+        statusBarLabel.setForeground(color);
+        if (fullText.length() <= STATUS_BAR_MAX_CHARS) {
+            statusBarLabel.setText(fullText);
+            statusBarLabel.setToolTipText(null);
+        } else {
+            statusBarLabel.setText(fullText.substring(0, STATUS_BAR_MAX_CHARS - 1) + "…");
+            statusBarLabel.setToolTipText(fullText);
+        }
     }
 
     // Groups and adds left-side components (template area)

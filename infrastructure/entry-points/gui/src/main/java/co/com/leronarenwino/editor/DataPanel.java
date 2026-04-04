@@ -25,15 +25,23 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
+import java.util.function.Consumer;
 
 public class DataPanel extends EditorPanel {
     private static DataPanel instance;
     private JButton validateDataModelButton;
     private JButton formatDataModelButton;
-    private JLabel validationStatusLabel;
+    private Consumer<JsonSyntaxCheck> jsonStatusSink;
 
     private DataPanel() {
         super("Data Model");
+    }
+
+    /**
+     * Receives JSON syntax checks (e.g. the frame status bar). Set from {@link TemplateEditor}.
+     */
+    public void setJsonStatusSink(Consumer<JsonSyntaxCheck> sink) {
+        this.jsonStatusSink = sink;
     }
 
     @Override
@@ -42,9 +50,6 @@ public class DataPanel extends EditorPanel {
         validateDataModelButton.setToolTipText("Validate JSON without formatting");
         formatDataModelButton = createStyledButton("🔨", "Format data model JSON", ButtonStyleUtil.ButtonStyle.SUCCESS);
         formatDataModelButton.setToolTipText("Pretty-print JSON (invalid JSON shows an error)");
-        validationStatusLabel = new JLabel();
-        validationStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        applyValidationResult(TemplateValidator.checkDataModelJsonSyntax(""));
     }
 
     @Override
@@ -56,22 +61,10 @@ public class DataPanel extends EditorPanel {
         textArea.setHighlightCurrentLine(false);
 
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
-
-        Font base = validationStatusLabel.getFont();
-        validationStatusLabel.setFont(base.deriveFont(Font.PLAIN, base.getSize2D() * 0.92f));
     }
 
     @Override
     protected void addComponents() {
-        topPanel.removeAll();
-        topPanel.setLayout(new BorderLayout(8, 0));
-        JPanel headerRow = new JPanel(new BorderLayout(10, 0));
-        headerRow.setOpaque(false);
-        headerRow.add(titleLabel, BorderLayout.WEST);
-        headerRow.add(validationStatusLabel, BorderLayout.CENTER);
-        headerRow.add(positionLabel, BorderLayout.EAST);
-        topPanel.add(headerRow, BorderLayout.CENTER);
-
         bottomPanel.add(validateDataModelButton);
         bottomPanel.add(Box.createVerticalStrut(5));
         bottomPanel.add(formatDataModelButton);
@@ -80,20 +73,26 @@ public class DataPanel extends EditorPanel {
     }
 
     /**
-     * Re-runs syntax check and updates the status label (e.g. after edits or format).
+     * Re-runs syntax check and forwards to the status sink (e.g. main window status bar).
      */
     public void refreshJsonValidationStatus() {
-        applyValidationResult(TemplateValidator.checkDataModelJsonSyntax(textArea.getText()));
+        emitStatus(TemplateValidator.checkDataModelJsonSyntax(textArea.getText()));
     }
 
     /**
-     * Validates JSON, updates the label, and moves the caret to the reported error position when possible.
+     * Validates JSON, updates status, and moves the caret to the reported error position when possible.
      */
     public void validateDataModelAndFocusError() {
         JsonSyntaxCheck check = TemplateValidator.checkDataModelJsonSyntax(textArea.getText());
-        applyValidationResult(check);
+        emitStatus(check);
         if (!check.syntaxValid() && check.line() > 0) {
             moveCaretTo(check.line(), check.column());
+        }
+    }
+
+    private void emitStatus(JsonSyntaxCheck check) {
+        if (jsonStatusSink != null) {
+            jsonStatusSink.accept(check);
         }
     }
 
@@ -111,40 +110,6 @@ public class DataPanel extends EditorPanel {
             textArea.requestFocusInWindow();
         } catch (BadLocationException ignored) {
             // line out of range after edit
-        }
-    }
-
-    private static final int STATUS_DISPLAY_MAX_CHARS = 72;
-
-    private void applyValidationResult(JsonSyntaxCheck check) {
-        Color color;
-        String fullText;
-        if (!check.syntaxValid()) {
-            color = Color.RED;
-            StringBuilder sb = new StringBuilder("Invalid JSON");
-            if (check.line() > 0) {
-                sb.append(" (line ").append(check.line());
-                if (check.column() > 0) {
-                    sb.append(", col ").append(check.column());
-                }
-                sb.append(')');
-            }
-            sb.append(": ").append(check.message());
-            fullText = sb.toString();
-        } else if (check.message() != null && !check.message().isEmpty()) {
-            color = new Color(180, 120, 0);
-            fullText = check.message();
-        } else {
-            color = new Color(0, 128, 0);
-            fullText = "Data model JSON is valid";
-        }
-        validationStatusLabel.setForeground(color);
-        if (fullText.length() <= STATUS_DISPLAY_MAX_CHARS) {
-            validationStatusLabel.setText(fullText);
-            validationStatusLabel.setToolTipText(null);
-        } else {
-            validationStatusLabel.setText(fullText.substring(0, STATUS_DISPLAY_MAX_CHARS - 1) + "…");
-            validationStatusLabel.setToolTipText(fullText);
         }
     }
 
