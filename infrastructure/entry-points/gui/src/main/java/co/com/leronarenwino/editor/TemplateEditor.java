@@ -26,6 +26,8 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import utils.SettingsSingleton;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
@@ -239,7 +241,9 @@ public class TemplateEditor extends JFrame {
         });
 
         // Button actions
-        dataPanel.getValidateDataModelButton().addActionListener(e -> formatDataInputJson());
+        dataPanel.getValidateDataModelButton().addActionListener(e -> dataPanel.validateDataModelAndFocusError());
+        dataPanel.getFormatDataModelButton().addActionListener(e -> formatDataInputJson());
+        installDataModelValidationDebounce();
         templatePanel.getFormatTemplateButton().addActionListener(e -> formatTemplateInputArea());
         templatePanel.getSingleLineButton().addActionListener(e -> setTemplateToSingleLine());
         outputPanel.getProcessTemplateButton().addActionListener(e -> processTemplateOutput());
@@ -301,8 +305,10 @@ public class TemplateEditor extends JFrame {
             Map<String, Object> dataModel = getDataModelFromInput();
             String output = templateValidator.processTemplate(templateContent, dataModel);
             outputPanel.getTextArea().setText(output);
+            dataPanel.refreshJsonValidationStatus();
         } catch (Exception ex) {
             outputPanel.getTextArea().setText("Error processing template: " + ex.getMessage());
+            dataPanel.refreshJsonValidationStatus();
         }
     }
 
@@ -331,6 +337,28 @@ public class TemplateEditor extends JFrame {
                     lastValidDataInput = formatted;
                 }
         );
+        dataPanel.refreshJsonValidationStatus();
+    }
+
+    private void installDataModelValidationDebounce() {
+        Timer debounce = new Timer(450, e -> dataPanel.refreshJsonValidationStatus());
+        debounce.setRepeats(false);
+        dataPanel.getTextArea().getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+        });
     }
 
     private void formatTemplateInputArea() {

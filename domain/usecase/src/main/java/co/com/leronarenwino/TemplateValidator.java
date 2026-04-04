@@ -17,6 +17,8 @@
 
 package co.com.leronarenwino;
 
+import com.fasterxml.jackson.core.JsonLocation;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +28,17 @@ import java.util.List;
 import java.util.Map;
 
 public class TemplateValidator {
+
+    /**
+     * Result of checking data-model JSON syntax (and a shallow structural hint for FreeMarker maps).
+     *
+     * @param syntaxValid {@code false} when {@link com.fasterxml.jackson.core.JsonProcessingException}
+     * @param message     empty when OK; parse error text or a short tip when syntax is valid but root is not an object
+     * @param line        1-based line from Jackson, or {@code -1} if unknown
+     * @param column      1-based column from Jackson, or {@code -1} if unknown
+     */
+    public record JsonSyntaxCheck(boolean syntaxValid, String message, int line, int column) {
+    }
 
     private final TemplateProcessor templateProcessor;
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -83,6 +96,32 @@ public class TemplateValidator {
     public static Map<String, Object> parseJsonToDataModel(String json) throws Exception {
         return MAPPER.readValue(json, new TypeReference<>() {
         });
+    }
+
+    /**
+     * Parses JSON without mutating the source; suitable for live validation of the data model editor.
+     */
+    public static JsonSyntaxCheck checkDataModelJsonSyntax(String json) {
+        String s = json == null ? "" : json.trim();
+        if (s.isEmpty()) {
+            return new JsonSyntaxCheck(true, "", -1, -1);
+        }
+        try {
+            JsonNode root = MAPPER.readTree(s);
+            if (root.isObject()) {
+                return new JsonSyntaxCheck(true, "", -1, -1);
+            }
+            if (root.isNull()) {
+                return new JsonSyntaxCheck(true, "Tip: use {} as root instead of null for the data model", -1, -1);
+            }
+            return new JsonSyntaxCheck(true, "Tip: root should be a JSON object { ... } for this app", -1, -1);
+        } catch (JsonProcessingException e) {
+            JsonLocation loc = e.getLocation();
+            int line = loc != null ? loc.getLineNr() : -1;
+            int col = loc != null ? loc.getColumnNr() : -1;
+            String msg = e.getOriginalMessage() != null ? e.getOriginalMessage() : e.getMessage();
+            return new JsonSyntaxCheck(false, msg != null ? msg : "Invalid JSON", line, col);
+        }
     }
 
     public static String formatFlexibleJson(String input) {
