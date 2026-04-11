@@ -18,13 +18,17 @@
 package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.TemplateValidator;
+import co.com.leronarenwino.TemplateValidator.EditorJsonSyntaxFailure;
 import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
+import co.com.leronarenwino.editor.syntax.JsonDataModelSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
+import org.fife.ui.rsyntaxtextarea.ErrorStrip;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class DataPanel extends EditorPanel {
@@ -59,6 +63,13 @@ public class DataPanel extends EditorPanel {
         textArea.setLineWrap(isWrapEnabled);
         textArea.setWrapStyleWord(isWrapEnabled);
         textArea.setHighlightCurrentLine(false);
+        textArea.addParser(new JsonDataModelSyntaxParser());
+
+        centerPanel.remove(scrollPane);
+        JPanel editorWrap = new JPanel(new BorderLayout(0, 0));
+        editorWrap.add(scrollPane, BorderLayout.CENTER);
+        editorWrap.add(new ErrorStrip(textArea), BorderLayout.LINE_END);
+        centerPanel.add(editorWrap, BorderLayout.CENTER);
 
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
     }
@@ -76,40 +87,74 @@ public class DataPanel extends EditorPanel {
      * Re-runs syntax check and forwards to the status sink (e.g. main window status bar).
      */
     public void refreshJsonValidationStatus() {
-        emitStatus(TemplateValidator.checkDataModelJsonSyntax(textArea.getText()));
+        emitStatus(checkCurrentDataModelJson());
     }
 
     /**
-     * Validates JSON, updates status, and moves the caret to the reported error position when possible.
+     * Validates JSON, updates status, selects the error span when possible, and scrolls it into view.
      */
     public void validateDataModelAndFocusError() {
-        JsonSyntaxCheck check = TemplateValidator.checkDataModelJsonSyntax(textArea.getText());
+        String json = editorSnapshotText();
+        JsonSyntaxCheck check = TemplateValidator.checkDataModelJsonSyntax(json);
         emitStatus(check);
-        if (!check.syntaxValid() && check.line() > 0) {
-            moveCaretTo(check.line(), check.column());
+        if (check.syntaxValid()) {
+            return;
+        }
+        EditorJsonSyntaxFailure fail = TemplateValidator.findJsonSyntaxFailureInFullText(json);
+        if (fail != null) {
+            focusJsonSyntaxFailure(fail);
+        }
+    }
+
+    private JsonSyntaxCheck checkCurrentDataModelJson() {
+        return TemplateValidator.checkDataModelJsonSyntax(editorSnapshotText());
+    }
+
+    /**
+     * Swing's {@code getText()} is annotated nullable in some JDK/editor stubs; validators expect a non-null {@link String}.
+     */
+    private String editorSnapshotText() {
+        return Objects.requireNonNullElse(textArea.getText(), "");
+    }
+
+    private void focusJsonSyntaxFailure(EditorJsonSyntaxFailure fail) {
+        int len = textArea.getDocument().getLength();
+        if (len <= 0) {
+            return;
+        }
+        int pos = -1;
+        if (fail.hasCharOffset() && fail.charOffset() >= 0 && fail.charOffset() < len) {
+            pos = (int) fail.charOffset();
+        } else if (fail.line1Based() > 0) {
+            try {
+                int lineIndex = fail.line1Based() - 1;
+                int lineStart = textArea.getLineStartOffset(lineIndex);
+                int lineEnd = textArea.getLineEndOffset(lineIndex);
+                int col = Math.max(0, fail.column1Based() - 1);
+                pos = Math.min(lineStart + col, Math.max(lineStart, lineEnd - 1));
+            } catch (BadLocationException ignored) {
+                // ignore
+            }
+        }
+        if (pos < 0) {
+            return;
+        }
+        textArea.requestFocusInWindow();
+        int end = Math.min(pos + 1, len);
+        textArea.select(pos, end);
+        try {
+            Rectangle r = textArea.modelToView(pos);
+            if (r != null) {
+                textArea.scrollRectToVisible(r);
+            }
+        } catch (BadLocationException ignored) {
+            // ignore
         }
     }
 
     private void emitStatus(JsonSyntaxCheck check) {
         if (jsonStatusSink != null) {
             jsonStatusSink.accept(check);
-        }
-    }
-
-    private void moveCaretTo(int jacksonLine1Based, int jacksonColumn1Based) {
-        int lineIndex = jacksonLine1Based - 1;
-        if (lineIndex < 0) {
-            return;
-        }
-        try {
-            int start = textArea.getLineStartOffset(lineIndex);
-            int lineEnd = textArea.getLineEndOffset(lineIndex);
-            int col = Math.max(0, jacksonColumn1Based - 1);
-            int pos = Math.min(start + col, Math.max(start, lineEnd - 1));
-            textArea.setCaretPosition(pos);
-            textArea.requestFocusInWindow();
-        } catch (BadLocationException ignored) {
-            // line out of range after edit
         }
     }
 

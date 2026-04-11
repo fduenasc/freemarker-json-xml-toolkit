@@ -40,6 +40,18 @@ public class TemplateValidator {
     public record JsonSyntaxCheck(boolean syntaxValid, String message, int line, int column) {
     }
 
+    /**
+     * First JSON syntax error in the full editor buffer (do not trim), for squiggles and caret placement.
+     *
+     * @param charOffset character offset from Jackson, or {@code -1} if unknown
+     */
+    public record EditorJsonSyntaxFailure(String message, int line1Based, int column1Based, long charOffset) {
+
+        public boolean hasCharOffset() {
+            return charOffset >= 0;
+        }
+    }
+
     private final TemplateProcessor templateProcessor;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -121,6 +133,36 @@ public class TemplateValidator {
             int col = loc != null ? loc.getColumnNr() : -1;
             String msg = e.getOriginalMessage() != null ? e.getOriginalMessage() : e.getMessage();
             return new JsonSyntaxCheck(false, msg != null ? msg : "Invalid JSON", line, col);
+        }
+    }
+
+    /**
+     * Locates the first parse error in {@code json} exactly as stored in the editor (leading/trailing
+     * whitespace preserved so {@link JsonLocation#getCharOffset()} matches document positions).
+     *
+     * @return {@code null} when empty (after trim), whitespace-only, or syntactically valid JSON
+     */
+    public static EditorJsonSyntaxFailure findJsonSyntaxFailureInFullText(String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+        if (json.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            MAPPER.readTree(json);
+            return null;
+        } catch (JsonProcessingException e) {
+            String msg = e.getOriginalMessage() != null ? e.getOriginalMessage() : e.getMessage();
+            JsonLocation loc = e.getLocation();
+            if (loc == null) {
+                return new EditorJsonSyntaxFailure(msg != null ? msg : "Invalid JSON", -1, -1, -1);
+            }
+            return new EditorJsonSyntaxFailure(
+                    msg != null ? msg : "Invalid JSON",
+                    loc.getLineNr(),
+                    loc.getColumnNr(),
+                    loc.getCharOffset());
         }
     }
 
