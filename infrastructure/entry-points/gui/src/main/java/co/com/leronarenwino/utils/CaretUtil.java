@@ -27,9 +27,9 @@ public class CaretUtil {
         try {
             int line = textArea.getLineOfOffset(caretPos) + 1;
             int column = caretPos - textArea.getLineStartOffset(line - 1) + 1;
-            label.setText(line + ":" + column);
+            label.setText("Ln " + line + ", Col " + column);
         } catch (Exception ex) {
-            label.setText("?:?");
+            label.setText("Ln ?, Col ?");
         }
     }
 }

@@ -28,23 +28,14 @@ import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class DataPanel extends EditorPanel {
     private static DataPanel instance;
     private JButton validateDataModelButton;
     private JButton formatDataModelButton;
-    private Consumer<JsonSyntaxCheck> jsonStatusSink;
 
     private DataPanel() {
         super("Data Model");
-    }
-
-    /**
-     * Receives JSON syntax checks (e.g. the frame status bar). Set from {@link TemplateEditor}.
-     */
-    public void setJsonStatusSink(Consumer<JsonSyntaxCheck> sink) {
-        this.jsonStatusSink = sink;
     }
 
     @Override
@@ -146,9 +137,28 @@ public class DataPanel extends EditorPanel {
     }
 
     private void emitStatus(JsonSyntaxCheck check) {
-        if (jsonStatusSink != null) {
-            jsonStatusSink.accept(check);
+        applyJsonCheckToFooter(check);
+    }
+
+    private void applyJsonCheckToFooter(JsonSyntaxCheck check) {
+        if (!check.syntaxValid()) {
+            StringBuilder sb = new StringBuilder("JSON no válido");
+            if (check.line() > 0) {
+                sb.append(" (Ln ").append(check.line());
+                if (check.column() > 0) {
+                    sb.append(", Col ").append(check.column());
+                }
+                sb.append(')');
+            }
+            String tip = check.message();
+            setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
+            return;
         }
+        if (check.message() != null && !check.message().isEmpty()) {
+            setEditorFooterStatus(check.message(), new Color(180, 120, 0), null);
+            return;
+        }
+        setEditorFooterStatus("JSON válido", new Color(0, 128, 0), null);
     }
 
     public static DataPanel getInstance() {

@@ -18,6 +18,7 @@
 package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxConstants;
+import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxDiagnostics;
 import co.com.leronarenwino.editor.syntax.FreemarkerTemplateSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 
@@ -51,6 +52,28 @@ public class TemplatePanel extends EditorPanel {
         textArea.setHighlightCurrentLine(false);
 
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        refreshTemplateSyntaxFooter();
+    }
+
+    /**
+     * Updates the footer line from a FreeMarker parse of the current editor text (debounced from {@link TemplateEditor}).
+     */
+    public void refreshTemplateSyntaxFooter() {
+        FreemarkerSyntaxDiagnostics.Result r = FreemarkerSyntaxDiagnostics.check(textArea.getText());
+        if (r.ok()) {
+            setEditorFooterStatus("Plantilla correcta", new Color(0, 128, 0), null);
+            return;
+        }
+        StringBuilder sb = new StringBuilder("Error en plantilla");
+        if (r.line1Based() > 0) {
+            sb.append(" (Ln ").append(r.line1Based());
+            if (r.column1Based() > 0) {
+                sb.append(", Col ").append(r.column1Based());
+            }
+            sb.append(')');
+        }
+        String tip = r.message();
+        setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
     }
 
     @Override

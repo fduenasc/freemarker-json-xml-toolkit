@@ -19,7 +19,6 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.FreemarkerProcessor;
 import co.com.leronarenwino.TemplateValidator;
-import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxSupport;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
@@ -266,6 +265,7 @@ public class TemplateEditor extends JFrame {
         dataPanel.getValidateDataModelButton().addActionListener(e -> dataPanel.validateDataModelAndFocusError());
         dataPanel.getFormatDataModelButton().addActionListener(e -> formatDataInputJson());
         installDataModelValidationDebounce();
+        installTemplateValidationDebounce();
         templatePanel.getFormatTemplateButton().addActionListener(e -> formatTemplateInputArea());
         templatePanel.getSingleLineButton().addActionListener(e -> setTemplateToSingleLine());
         outputPanel.getProcessTemplateButton().addActionListener(e -> processTemplateOutput());
@@ -273,8 +273,8 @@ public class TemplateEditor extends JFrame {
         outputPanel.getClearOutputButton().addActionListener(e -> outputPanel.getTextArea().setText(""));
         expectedFieldsPanel.getValidateFieldsButton().addActionListener(e -> validateOutputFields());
 
-        dataPanel.setJsonStatusSink(this::applyDataModelJsonStatus);
         dataPanel.refreshJsonValidationStatus();
+        templatePanel.refreshTemplateSyntaxFooter();
 
         expectedFieldsPanel.setStatusBarSink((msg, color) -> setStatusBarText("Expected fields · " + msg, color));
 
@@ -297,34 +297,6 @@ public class TemplateEditor extends JFrame {
         } else {
             statusBarLabel.setText(fullText.substring(0, STATUS_BAR_MAX_CHARS - 1) + "…");
             statusBarLabel.setToolTipText(fullText);
-        }
-    }
-
-    private void applyDataModelJsonStatus(JsonSyntaxCheck check) {
-        Color color;
-        String detail;
-        if (!check.syntaxValid()) {
-            color = Color.RED;
-            StringBuilder sb = new StringBuilder("Invalid JSON");
-            if (check.line() > 0) {
-                sb.append(" (line ").append(check.line());
-                if (check.column() > 0) {
-                    sb.append(", col ").append(check.column());
-                }
-                sb.append(')');
-            }
-            detail = sb.toString();
-        } else if (check.message() != null && !check.message().isEmpty()) {
-            color = new Color(180, 120, 0);
-            detail = check.message();
-        } else {
-            color = new Color(0, 128, 0);
-            detail = "JSON is valid";
-        }
-        setStatusBarText("Data model · " + detail, color);
-        if (!check.syntaxValid()) {
-            String tip = check.message();
-            statusBarLabel.setToolTipText(tip != null && !tip.isBlank() ? tip : null);
         }
     }
 
@@ -428,6 +400,27 @@ public class TemplateEditor extends JFrame {
         });
     }
 
+    private void installTemplateValidationDebounce() {
+        Timer debounce = new Timer(450, e -> templatePanel.refreshTemplateSyntaxFooter());
+        debounce.setRepeats(false);
+        templatePanel.getTextArea().getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                debounce.restart();
+            }
+        });
+    }
+
     private void formatTemplateInputArea() {
         String template = templatePanel.getTextArea().getText();
         String formatted = formatFreemarkerTemplateCombined(template);
@@ -437,6 +430,7 @@ public class TemplateEditor extends JFrame {
         } finally {
             templatePanel.getTextArea().endAtomicEdit();
         }
+        templatePanel.refreshTemplateSyntaxFooter();
     }
 
     private void setTemplateToSingleLine() {
@@ -444,6 +438,7 @@ public class TemplateEditor extends JFrame {
         String singleLine = TemplateValidator.toSingleLine(template);
         singleLine = singleLine.replaceAll("}>\\s+\\{", "}>{");
         templatePanel.getTextArea().setText(singleLine);
+        templatePanel.refreshTemplateSyntaxFooter();
     }
 
     private void toggleExpectedFieldsPanel(boolean visible) {

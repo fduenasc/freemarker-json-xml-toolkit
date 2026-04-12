@@ -51,6 +51,8 @@ public class OutputPanel extends EditorPanel {
         textArea.setWrapStyleWord(isWrapEnabled);
         textArea.setHighlightCurrentLine(false);
 
+        setEditorFooterStatusVisible(false);
+
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
     }
 

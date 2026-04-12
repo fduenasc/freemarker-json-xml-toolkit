@@ -30,6 +30,8 @@ public abstract class EditorPanel extends JPanel {
     protected RSyntaxTextArea textArea;
     protected RTextScrollPane scrollPane;
     protected JLabel positionLabel;
+    private final JPanel editorFooterPanel;
+    private final JLabel editorStatusLabel;
     protected JPanel bottomPanel;
     protected FindReplacePanel findReplacePanel;
     protected JPanel centerPanel;
@@ -42,26 +44,50 @@ public abstract class EditorPanel extends JPanel {
         setLayout(new BorderLayout());
         textArea = new MarkupBracketRSyntaxTextArea();
         scrollPane = new RTextScrollPane(textArea, true);
-        positionLabel = new JLabel("1:1");
+        positionLabel = new JLabel("Ln 1, Col 1");
+        positionLabel.setHorizontalAlignment(SwingConstants.TRAILING);
+
+        editorStatusLabel = new JLabel(" ");
+        editorStatusLabel.setHorizontalAlignment(SwingConstants.LEADING);
+
+        Color footerTop = UIManager.getColor("Component.borderColor");
+        if (footerTop == null) {
+            footerTop = UIManager.getColor("Separator.foreground");
+        }
+        if (footerTop == null) {
+            footerTop = new Color(0xC8, 0xC8, 0xC8);
+        }
+        editorFooterPanel = new JPanel(new BorderLayout(10, 0));
+        editorFooterPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, footerTop),
+                BorderFactory.createEmptyBorder(3, 4, 4, 4)));
+        editorFooterPanel.add(editorStatusLabel, BorderLayout.WEST);
+        editorFooterPanel.add(positionLabel, BorderLayout.EAST);
+        Font baseFont = UIManager.getFont("Label.font");
+        if (baseFont != null) {
+            Font small = baseFont.deriveFont(Math.max(10f, baseFont.getSize2D() - 1f));
+            editorStatusLabel.setFont(small);
+            positionLabel.setFont(small);
+        }
+
+        JPanel editorBodyStack = new JPanel(new BorderLayout());
+        editorBodyStack.add(scrollPane, BorderLayout.CENTER);
+        editorBodyStack.add(editorFooterPanel, BorderLayout.SOUTH);
+
         bottomPanel = new JPanel();
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
         bottomPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Create title label and top panel
         titleLabel = new JLabel(labelText);
         topPanel = new JPanel(new BorderLayout());
         topPanel.add(titleLabel, BorderLayout.WEST);
-        topPanel.add(positionLabel, BorderLayout.EAST);
 
-        // Create find/replace panel
         findReplacePanel = new FindReplacePanel(textArea);
 
-        // Create center panel to hold find/replace and scroll pane
         centerPanel = new JPanel(new BorderLayout());
         centerPanel.add(findReplacePanel, BorderLayout.NORTH);
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
+        centerPanel.add(editorBodyStack, BorderLayout.CENTER);
 
-        // Initialize wrap button
         toggleWrapButton = createStyledButton("→", "Toggle line wrap", ButtonStyleUtil.ButtonStyle.SECONDARY);
         toggleWrapButton.setToolTipText("Toggle line wrap");
         toggleWrapButton.addActionListener(e -> toggleWrap());
@@ -79,6 +105,26 @@ public abstract class EditorPanel extends JPanel {
         addFindKeyBinding();
         addReplaceKeyBinding();
         addEscapeKeyBinding();
+    }
+
+    /**
+     * Left side of the footer under the editor (validation hint). Right side is always {@code Ln, Col}.
+     */
+    protected void setEditorFooterStatus(String text, Color foreground, String toolTip) {
+        editorStatusLabel.setText(text != null && !text.isEmpty() ? text : " ");
+        editorStatusLabel.setForeground(foreground);
+        editorStatusLabel.setToolTipText(toolTip != null && !toolTip.isBlank() ? toolTip : null);
+    }
+
+    protected void setEditorFooterStatusVisible(boolean visible) {
+        editorStatusLabel.setVisible(visible);
+    }
+
+    /**
+     * Hides the whole footer row (status + line/column). Use when the panel does not need caret position.
+     */
+    protected void setEditorFooterRowVisible(boolean visible) {
+        editorFooterPanel.setVisible(visible);
     }
 
     public void toggleWrap() {

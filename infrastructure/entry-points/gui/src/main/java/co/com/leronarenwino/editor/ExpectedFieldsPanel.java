@@ -52,8 +52,7 @@ public class ExpectedFieldsPanel extends EditorPanel {
         scrollPane.setFoldIndicatorEnabled(false);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        positionLabel.setEnabled(false);
-        positionLabel.setVisible(false);
+        setEditorFooterRowVisible(false);
     }
 
     @Override

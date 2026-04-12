@@ -17,9 +17,6 @@
 
 package co.com.leronarenwino.editor.syntax;
 
-import co.com.leronarenwino.config.FreemarkerConfigProvider;
-import freemarker.core.ParseException;
-import freemarker.template.Template;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.parser.AbstractParser;
 import org.fife.ui.rsyntaxtextarea.parser.DefaultParseResult;
@@ -27,7 +24,6 @@ import org.fife.ui.rsyntaxtextarea.parser.DefaultParserNotice;
 import org.fife.ui.rsyntaxtextarea.parser.ParseResult;
 
 import javax.swing.text.BadLocationException;
-import java.io.StringReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,17 +42,14 @@ public class FreemarkerTemplateSyntaxParser extends AbstractParser {
         }
         try {
             String text = doc.getText(0, doc.getLength());
-            new Template("syntax-check", new StringReader(text), FreemarkerConfigProvider.getConfiguration());
-        } catch (ParseException e) {
-            int line = Math.max(0, e.getLineNumber() - 1);
-            String msg = e.getMessage() != null ? e.getMessage() : "Parse error";
-            result.addNotice(new DefaultParserNotice(this, msg, line));
+            FreemarkerSyntaxDiagnostics.Result r = FreemarkerSyntaxDiagnostics.check(text);
+            if (!r.ok()) {
+                int line0 = r.line1Based() > 0 ? r.line1Based() - 1 : 0;
+                String msg = r.message() != null ? r.message() : "Parse error";
+                result.addNotice(new DefaultParserNotice(this, msg, line0));
+            }
         } catch (BadLocationException e) {
             LOG.log(Level.FINE, "Could not read document for syntax check", e);
-        } catch (Exception e) {
-            LOG.log(Level.FINE, "Template syntax check failed", e);
-            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            result.addNotice(new DefaultParserNotice(this, msg, 0));
         }
         return result;
     }
