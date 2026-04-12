@@ -22,7 +22,6 @@ import co.com.leronarenwino.TemplateValidator.EditorJsonSyntaxFailure;
 import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.JsonDataModelSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
-import org.fife.ui.rsyntaxtextarea.ErrorStrip;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import javax.swing.*;
@@ -64,12 +63,6 @@ public class DataPanel extends EditorPanel {
         textArea.setWrapStyleWord(isWrapEnabled);
         textArea.setHighlightCurrentLine(false);
         textArea.addParser(new JsonDataModelSyntaxParser());
-
-        centerPanel.remove(scrollPane);
-        JPanel editorWrap = new JPanel(new BorderLayout(0, 0));
-        editorWrap.add(scrollPane, BorderLayout.CENTER);
-        editorWrap.add(new ErrorStrip(textArea), BorderLayout.LINE_END);
-        centerPanel.add(editorWrap, BorderLayout.CENTER);
 
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
     }

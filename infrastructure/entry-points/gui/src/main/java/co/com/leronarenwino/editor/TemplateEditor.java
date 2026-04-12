@@ -313,7 +313,6 @@ public class TemplateEditor extends JFrame {
                 }
                 sb.append(')');
             }
-            sb.append(": ").append(check.message());
             detail = sb.toString();
         } else if (check.message() != null && !check.message().isEmpty()) {
             color = new Color(180, 120, 0);
@@ -323,6 +322,10 @@ public class TemplateEditor extends JFrame {
             detail = "JSON is valid";
         }
         setStatusBarText("Data model · " + detail, color);
+        if (!check.syntaxValid()) {
+            String tip = check.message();
+            statusBarLabel.setToolTipText(tip != null && !tip.isBlank() ? tip : null);
+        }
     }
 
     // Groups and adds left-side components (template area)
