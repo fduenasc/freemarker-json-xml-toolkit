@@ -18,7 +18,9 @@
 package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.FreemarkerProcessor;
+import co.com.leronarenwino.FreemarkerTemplateSyntaxChecker;
 import co.com.leronarenwino.TemplateValidator;
+import co.com.leronarenwino.TemplateValidator.FreemarkerTemplateSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxSupport;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
@@ -339,15 +341,40 @@ public class TemplateEditor extends JFrame {
 
     private void processTemplateOutput() {
         String templateContent = templatePanel.getTextArea().getText();
+        FreemarkerTemplateSyntaxCheck syntaxCheck = FreemarkerTemplateSyntaxChecker.check(templateContent);
+        if (!syntaxCheck.syntaxValid()) {
+            outputPanel.getTextArea().setText(formatTemplateSyntaxErrorForOutput(syntaxCheck));
+            dataPanel.refreshJsonValidationStatus();
+            templatePanel.refreshTemplateSyntaxFooter();
+            return;
+        }
         try {
             Map<String, Object> dataModel = getDataModelFromInput();
             String output = templateValidator.processTemplate(templateContent, dataModel);
             outputPanel.getTextArea().setText(output);
             dataPanel.refreshJsonValidationStatus();
+            templatePanel.refreshTemplateSyntaxFooter();
         } catch (Exception ex) {
             outputPanel.getTextArea().setText("Error processing template: " + ex.getMessage());
             dataPanel.refreshJsonValidationStatus();
+            templatePanel.refreshTemplateSyntaxFooter();
         }
+    }
+
+    private static String formatTemplateSyntaxErrorForOutput(FreemarkerTemplateSyntaxCheck check) {
+        StringBuilder sb = new StringBuilder("Template syntax error");
+        if (check.line() > 0) {
+            sb.append(" (line ").append(check.line());
+            if (check.column() > 0) {
+                sb.append(", column ").append(check.column());
+            }
+            sb.append(')');
+        }
+        sb.append(":\n\n");
+        if (check.message() != null && !check.message().isBlank()) {
+            sb.append(check.message());
+        }
+        return sb.toString();
     }
 
     private void validateOutputFields() {

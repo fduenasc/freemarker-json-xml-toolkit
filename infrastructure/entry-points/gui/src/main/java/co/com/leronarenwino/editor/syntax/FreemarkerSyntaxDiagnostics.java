@@ -17,20 +17,17 @@
 
 package co.com.leronarenwino.editor.syntax;
 
-import co.com.leronarenwino.config.FreemarkerConfigProvider;
-import freemarker.core.ParseException;
-import freemarker.template.Template;
-
-import java.io.StringReader;
+import co.com.leronarenwino.FreemarkerTemplateSyntaxChecker;
+import co.com.leronarenwino.TemplateValidator;
 
 /**
- * Shared FreeMarker parse check for squiggles ({@link FreemarkerTemplateSyntaxParser}) and editor footer status.
+ * Maps {@link FreemarkerTemplateSyntaxChecker} results for {@link FreemarkerTemplateSyntaxParser} (line indices).
  */
 public final class FreemarkerSyntaxDiagnostics {
 
     /**
-     * @param line1Based 1-based line when {@link ParseException} provides it, else {@code 0}
-     * @param column1Based 1-based column when available, else {@code 0}
+     * @param line1Based 1-based line when known, else {@code 0}
+     * @param column1Based 1-based column when known, else {@code 0}
      */
     public record Result(boolean ok, int line1Based, int column1Based, String message) {
     }
@@ -39,18 +36,13 @@ public final class FreemarkerSyntaxDiagnostics {
     }
 
     public static Result check(String source) {
-        String t = source == null ? "" : source;
-        try {
-            new Template("syntax-check", new StringReader(t), FreemarkerConfigProvider.getConfiguration());
+        TemplateValidator.FreemarkerTemplateSyntaxCheck c = FreemarkerTemplateSyntaxChecker.check(source);
+        if (c.syntaxValid()) {
             return new Result(true, 0, 0, null);
-        } catch (ParseException e) {
-            int line = Math.max(0, e.getLineNumber());
-            int col = Math.max(0, e.getColumnNumber());
-            String msg = e.getMessage() != null ? e.getMessage() : "Parse error";
-            return new Result(false, line, col, msg);
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return new Result(false, 0, 0, msg);
         }
+        int line = c.line() > 0 ? c.line() : 0;
+        int col = c.column() > 0 ? c.column() : 0;
+        String msg = c.message() != null ? c.message() : "Parse error";
+        return new Result(false, line, col, msg);
     }
 }

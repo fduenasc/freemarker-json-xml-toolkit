@@ -41,6 +41,18 @@ public class TemplateValidator {
     }
 
     /**
+     * Result of parsing the FreeMarker template source for syntax only (no data model).
+     * Produced by the {@code freemarker-adapter} module when checking template source text.
+     *
+     * @param syntaxValid {@code false} on FreeMarker parse errors or unexpected failures
+     * @param message     empty when OK; otherwise parser error text
+     * @param line        1-based line when known, else {@code -1}
+     * @param column      1-based column when known, else {@code -1}
+     */
+    public record FreemarkerTemplateSyntaxCheck(boolean syntaxValid, String message, int line, int column) {
+    }
+
+    /**
      * First JSON syntax error in the full editor buffer (do not trim), for squiggles and caret placement.
      *
      * @param charOffset character offset from Jackson, or {@code -1} if unknown
@@ -182,7 +194,7 @@ public class TemplateValidator {
                 String pretty = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
                 return pretty.replace("\r\n", "\n");
             } catch (Exception e2) {
-                throw new IllegalArgumentException("El JSON es inválido:\n\n" + e2.getMessage());
+                throw new IllegalArgumentException("Invalid JSON:\n\n" + e2.getMessage());
             }
         }
     }

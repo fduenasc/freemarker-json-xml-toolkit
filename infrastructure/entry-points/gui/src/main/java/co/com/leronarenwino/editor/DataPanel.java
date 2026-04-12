@@ -83,7 +83,7 @@ public class DataPanel extends EditorPanel {
 
     private void applyJsonCheckToFooter(JsonSyntaxCheck check) {
         if (!check.syntaxValid()) {
-            StringBuilder sb = new StringBuilder("JSON no válido");
+            StringBuilder sb = new StringBuilder("Invalid JSON");
             if (check.line() > 0) {
                 sb.append(" (Ln ").append(check.line());
                 if (check.column() > 0) {
@@ -99,7 +99,7 @@ public class DataPanel extends EditorPanel {
             setEditorFooterStatus(check.message(), new Color(180, 120, 0), null);
             return;
         }
-        setEditorFooterStatus("JSON válido", new Color(0, 128, 0), null);
+        setEditorFooterStatus("Valid JSON", new Color(0, 128, 0), null);
     }
 
     public JButton getFormatDataModelButton() {

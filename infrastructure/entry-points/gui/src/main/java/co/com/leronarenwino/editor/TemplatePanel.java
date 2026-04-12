@@ -17,13 +17,15 @@
 
 package co.com.leronarenwino.editor;
 
+import co.com.leronarenwino.FreemarkerTemplateSyntaxChecker;
+import co.com.leronarenwino.TemplateValidator.FreemarkerTemplateSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxConstants;
-import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxDiagnostics;
 import co.com.leronarenwino.editor.syntax.FreemarkerTemplateSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 
 public class TemplatePanel extends EditorPanel {
     private static TemplatePanel instance;
@@ -56,24 +58,31 @@ public class TemplatePanel extends EditorPanel {
     }
 
     /**
-     * Updates the footer line from a FreeMarker parse of the current editor text (debounced from {@link TemplateEditor}).
+     * Re-runs FreeMarker syntax check and updates the panel footer (debounced from {@link TemplateEditor}).
      */
     public void refreshTemplateSyntaxFooter() {
-        FreemarkerSyntaxDiagnostics.Result r = FreemarkerSyntaxDiagnostics.check(textArea.getText());
-        if (r.ok()) {
-            setEditorFooterStatus("Plantilla correcta", new Color(0, 128, 0), null);
+        emitTemplateStatus(FreemarkerTemplateSyntaxChecker.check(editorSnapshotText()));
+    }
+
+    private String editorSnapshotText() {
+        return Objects.requireNonNullElse(textArea.getText(), "");
+    }
+
+    private void emitTemplateStatus(FreemarkerTemplateSyntaxCheck check) {
+        if (!check.syntaxValid()) {
+            StringBuilder sb = new StringBuilder("Invalid template");
+            if (check.line() > 0) {
+                sb.append(" (Ln ").append(check.line());
+                if (check.column() > 0) {
+                    sb.append(", Col ").append(check.column());
+                }
+                sb.append(')');
+            }
+            String tip = check.message();
+            setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
             return;
         }
-        StringBuilder sb = new StringBuilder("Error en plantilla");
-        if (r.line1Based() > 0) {
-            sb.append(" (Ln ").append(r.line1Based());
-            if (r.column1Based() > 0) {
-                sb.append(", Col ").append(r.column1Based());
-            }
-            sb.append(')');
-        }
-        String tip = r.message();
-        setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
+        setEditorFooterStatus("Template OK", new Color(0, 128, 0), null);
     }
 
     @Override
