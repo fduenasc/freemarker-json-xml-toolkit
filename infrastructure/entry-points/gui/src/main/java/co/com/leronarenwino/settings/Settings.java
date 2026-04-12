@@ -23,12 +23,29 @@ import utils.PropertiesManager;
 import utils.SettingsSingleton;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.awt.*;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static co.com.leronarenwino.config.FreemarkerConfigProvider.reloadConfiguration;
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_APPEARANCE;
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_EDITOR;
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_FREEMARKER;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_APPEARANCE;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_FREEMARKER;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_SYNTAX;
+import static co.com.leronarenwino.settings.SettingsNav.CategoryRef;
+import static co.com.leronarenwino.settings.SettingsNav.PageRef;
 import static utils.PropertiesManager.loadProperties;
 import static utils.SettingsSingleton.defaultAppProperties;
 
@@ -37,26 +54,34 @@ public class Settings extends JDialog {
     public static final String PROPERTIES_FILE = "config.properties";
 
     private JPanel mainPanel;
-    private JTabbedPane tabbedPane;
+    private JSplitPane splitPane;
+    private JTree navTree;
+    private DefaultTreeModel treeModel;
+    private JTextField searchField;
+    private JLabel breadcrumbLabel;
+    private JPanel cardsPanel;
+    private CardLayout cardLayout;
+    private String selectedPageKey = PAGE_APPEARANCE;
 
-    private JPanel editorPanel;
+    private JPanel appearancePanel;
+    private JPanel syntaxPanel;
+    private JPanel freemarkerPanel;
+
     private JComboBox<String> themeCombo;
     private JComboBox<String> uiLanguageCombo;
     private JLabel labelAppTheme;
     private JLabel labelUiLang;
 
-    private JPanel freemarkerPanel;
     private JComboBox<String> localeCombo;
     private JComboBox<String> timeZoneCombo;
     private JLabel labelFmLocale;
     private JLabel labelFmTz;
 
-    private JPanel buttonPanel;
     private JButton cancelButton;
     private JButton okButton;
     private JButton applyButton;
+    private JButton helpButton;
 
-    private JPanel rsyntaxPanel;
     private JComboBox<String> rsyntaxThemeCombo;
     private JLabel labelRsyntaxTheme;
 
@@ -76,39 +101,43 @@ public class Settings extends JDialog {
 
     public Settings(JFrame parent) {
         super(parent, "Settings", true);
-        setSize(430, 310);
-        setResizable(false);
+        setMinimumSize(new Dimension(640, 420));
+        setSize(780, 520);
         setLocationRelativeTo(parent);
 
         initComponents();
-        setComponents();
-        addComponents();
+        buildLayout();
+        wireActions();
         loadSettings();
     }
 
     private void initComponents() {
-        mainPanel = new JPanel(new BorderLayout(0, 10));
-        tabbedPane = new JTabbedPane();
+        mainPanel = new JPanel(new BorderLayout(0, 0));
 
-        editorPanel = new JPanel();
+        searchField = new JTextField();
+        searchField.setToolTipText(UiMessages.settingsSearchTooltip());
+        searchField.putClientProperty("JTextField.placeholderText", UiMessages.settingsSearchPlaceholder());
+
+        appearancePanel = new JPanel();
         themeCombo = new JComboBox<>(new String[]{
                 "Flat Light", "Flat Dark", "Flat IntelliJ", "Flat Darcula"
         });
         uiLanguageCombo = new JComboBox<>(new String[]{"English", "Español"});
 
+        syntaxPanel = new JPanel();
+        java.util.List<String> sortedThemes = new java.util.ArrayList<>(THEME_DISPLAY_TO_FILE.keySet());
+        java.util.Collections.sort(sortedThemes);
+        rsyntaxThemeCombo = new JComboBox<>(sortedThemes.toArray(new String[0]));
+
         freemarkerPanel = new JPanel();
         localeCombo = new JComboBox<>(new String[]{"en_US", "es_CO", "fr_FR"});
         timeZoneCombo = new JComboBox<>(new String[]{"America/Los_Angeles", "UTC"});
 
-        buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         okButton = new JButton("OK");
         cancelButton = new JButton("Cancel");
         applyButton = new JButton("Apply");
-
-        rsyntaxPanel = new JPanel();
-        java.util.List<String> sortedThemes = new java.util.ArrayList<>(THEME_DISPLAY_TO_FILE.keySet());
-        java.util.Collections.sort(sortedThemes);
-        rsyntaxThemeCombo = new JComboBox<>(sortedThemes.toArray(new String[0]));
+        helpButton = new JButton("?");
+        helpButton.setMargin(new Insets(2, 10, 2, 10));
 
         props = loadProperties(PROPERTIES_FILE, defaultAppProperties());
         if (props.isEmpty()) {
@@ -120,55 +149,150 @@ public class Settings extends JDialog {
         labelRsyntaxTheme = new JLabel();
         labelFmLocale = new JLabel();
         labelFmTz = new JLabel();
-    }
 
-    private void setComponents() {
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setContentPane(mainPanel);
+        appearancePanel.setLayout(new BoxLayout(appearancePanel, BoxLayout.Y_AXIS));
+        appearancePanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 8, 0));
+        appearancePanel.add(labeledRow(labelAppTheme, themeCombo));
+        appearancePanel.add(Box.createVerticalStrut(8));
+        appearancePanel.add(labeledRow(labelUiLang, uiLanguageCombo));
 
-        editorPanel.setLayout(new BoxLayout(editorPanel, BoxLayout.Y_AXIS));
-        editorPanel.add(labeledRow(labelAppTheme, themeCombo));
-        editorPanel.add(Box.createVerticalStrut(5));
-        editorPanel.add(labeledRow(labelUiLang, uiLanguageCombo));
-
-        rsyntaxPanel.setLayout(new BoxLayout(rsyntaxPanel, BoxLayout.Y_AXIS));
-        rsyntaxPanel.add(labeledRow(labelRsyntaxTheme, rsyntaxThemeCombo));
+        syntaxPanel.setLayout(new BoxLayout(syntaxPanel, BoxLayout.Y_AXIS));
+        syntaxPanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 8, 0));
+        syntaxPanel.add(labeledRow(labelRsyntaxTheme, rsyntaxThemeCombo));
 
         freemarkerPanel.setLayout(new BoxLayout(freemarkerPanel, BoxLayout.Y_AXIS));
+        freemarkerPanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 8, 0));
         localeCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_LOCALE));
         timeZoneCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_TIME_ZONE));
         freemarkerPanel.add(labeledRow(labelFmLocale, localeCombo));
-        freemarkerPanel.add(Box.createVerticalStrut(5));
+        freemarkerPanel.add(Box.createVerticalStrut(8));
         freemarkerPanel.add(labeledRow(labelFmTz, timeZoneCombo));
+
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+
+        DefaultMutableTreeNode ab = new DefaultMutableTreeNode(new CategoryRef(CATEGORY_APPEARANCE));
+        ab.add(new DefaultMutableTreeNode(new PageRef(PAGE_APPEARANCE)));
+
+        DefaultMutableTreeNode ed = new DefaultMutableTreeNode(new CategoryRef(CATEGORY_EDITOR));
+        ed.add(new DefaultMutableTreeNode(new PageRef(PAGE_SYNTAX)));
+
+        DefaultMutableTreeNode fm = new DefaultMutableTreeNode(new CategoryRef(CATEGORY_FREEMARKER));
+        fm.add(new DefaultMutableTreeNode(new PageRef(PAGE_FREEMARKER)));
+
+        root.add(ab);
+        root.add(ed);
+        root.add(fm);
+
+        treeModel = new DefaultTreeModel(root);
+        navTree = new JTree(treeModel);
+        navTree.setRootVisible(false);
+        navTree.setShowsRootHandles(true);
+        navTree.setRowHeight(22);
+        navTree.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+        navTree.setCellRenderer(new DefaultTreeCellRenderer() {
+            @Override
+            public Component getTreeCellRendererComponent(
+                    JTree tree,
+                    Object value,
+                    boolean sel,
+                    boolean expanded,
+                    boolean leaf,
+                    int row,
+                    boolean hasFocus) {
+                super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+                if (value instanceof DefaultMutableTreeNode n) {
+                    Object uo = n.getUserObject();
+                    if (uo instanceof PageRef p) {
+                        setText(UiMessages.settingsPageTitle(p.cardKey()));
+                    } else if (uo instanceof CategoryRef c) {
+                        setText(UiMessages.settingsCategoryTitle(c.key()));
+                    }
+                }
+                setIcon(null);
+                return this;
+            }
+        });
     }
 
-    private JPanel labeledRow(JLabel label, JComboBox<String> combo) {
-        Font compactFont = new Font("SansSerif", Font.PLAIN, 11);
-        label.setFont(compactFont);
-        label.setMaximumSize(new Dimension(160, 22));
-        combo.setFont(compactFont);
-        combo.setMaximumSize(new Dimension(200, 24));
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(label);
-        panel.add(Box.createHorizontalStrut(10));
-        panel.add(combo);
-        return panel;
+    private void buildLayout() {
+        setContentPane(mainPanel);
+
+        Color sep = UIManager.getColor("Component.borderColor");
+        if (sep == null) {
+            sep = UIManager.getColor("Separator.foreground");
+        }
+        if (sep == null) {
+            sep = new Color(0xC0, 0xC0, 0xC0);
+        }
+        final Color dividerLine = sep;
+
+        JPanel navColumn = new JPanel(new BorderLayout(0, 6));
+        navColumn.setMinimumSize(new Dimension(200, 120));
+        navColumn.setPreferredSize(new Dimension(220, 400));
+        Border navRight = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 0, 1, dividerLine),
+                BorderFactory.createEmptyBorder(8, 10, 8, 8));
+        navColumn.setBorder(navRight);
+        navColumn.add(searchField, BorderLayout.NORTH);
+        navColumn.add(new JScrollPane(navTree), BorderLayout.CENTER);
+
+        breadcrumbLabel = new JLabel(" ");
+        breadcrumbLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        Font base = breadcrumbLabel.getFont();
+        if (base != null) {
+            breadcrumbLabel.setFont(base.deriveFont(Font.PLAIN, base.getSize2D() + 1f));
+        }
+
+        cardLayout = new CardLayout();
+        cardsPanel = new JPanel(cardLayout);
+        cardsPanel.add(wrapPage(appearancePanel), PAGE_APPEARANCE);
+        cardsPanel.add(wrapPage(syntaxPanel), PAGE_SYNTAX);
+        cardsPanel.add(wrapPage(freemarkerPanel), PAGE_FREEMARKER);
+
+        JPanel detail = new JPanel(new BorderLayout(0, 0));
+        detail.setBorder(BorderFactory.createEmptyBorder(12, 16, 8, 16));
+        detail.add(breadcrumbLabel, BorderLayout.NORTH);
+        detail.add(cardsPanel, BorderLayout.CENTER);
+
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, navColumn, detail);
+        splitPane.setResizeWeight(0.26);
+        splitPane.setContinuousLayout(true);
+        splitPane.setBorder(null);
+        splitPane.setDividerSize(3);
+
+        JPanel south = new JPanel(new BorderLayout());
+        south.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, dividerLine),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)));
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.TRAILING, 10, 0));
+        actions.add(okButton);
+        actions.add(cancelButton);
+        actions.add(applyButton);
+
+        south.add(helpButton, BorderLayout.WEST);
+        south.add(actions, BorderLayout.EAST);
+
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+        mainPanel.add(south, BorderLayout.SOUTH);
+
+        getRootPane().setDefaultButton(okButton);
+
+        SwingUtilities.invokeLater(() -> {
+            expandAllNavRows();
+            selectPageNode(PAGE_APPEARANCE);
+        });
     }
 
-    private void addComponents() {
-        tabbedPane.addTab("Editor", editorPanel);
-        tabbedPane.addTab("Syntax Theme", rsyntaxPanel);
-        tabbedPane.addTab("FreeMarker", freemarkerPanel);
+    private static JScrollPane wrapPage(JPanel inner) {
+        JScrollPane sp = new JScrollPane(inner);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+        return sp;
+    }
 
+    private void wireActions() {
         cancelButton.addActionListener(e -> dispose());
-
-        buttonPanel.add(okButton);
-        buttonPanel.add(Box.createHorizontalStrut(10));
-        buttonPanel.add(cancelButton);
-        buttonPanel.add(Box.createHorizontalStrut(10));
-        buttonPanel.add(applyButton);
 
         okButton.addActionListener(e -> {
             saveSettings();
@@ -184,8 +308,47 @@ public class Settings extends JDialog {
             reloadConfiguration();
         });
 
-        mainPanel.add(tabbedPane, BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        helpButton.addActionListener(e -> JOptionPane.showMessageDialog(
+                this,
+                UiMessages.settingsHelpMessage(),
+                UiMessages.settingsHelpTooltip(),
+                JOptionPane.INFORMATION_MESSAGE));
+
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                applyNavSearch();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                applyNavSearch();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                applyNavSearch();
+            }
+        });
+
+        navTree.addTreeSelectionListener(e -> {
+            TreePath path = e.getNewLeadSelectionPath();
+            if (path == null) {
+                return;
+            }
+            DefaultMutableTreeNode n = (DefaultMutableTreeNode) path.getLastPathComponent();
+            Object uo = n.getUserObject();
+            if (uo instanceof CategoryRef && n.getChildCount() > 0) {
+                DefaultMutableTreeNode first = (DefaultMutableTreeNode) n.getFirstChild();
+                SwingUtilities.invokeLater(() -> navTree.setSelectionPath(new TreePath(first.getPath())));
+                return;
+            }
+            if (uo instanceof PageRef pr) {
+                selectedPageKey = pr.cardKey();
+                cardLayout.show(cardsPanel, pr.cardKey());
+                breadcrumbLabel.setText(UiMessages.settingsBreadcrumb(pr.cardKey()));
+            }
+        });
 
         themeCombo.addActionListener(e -> {
             String selected = (String) themeCombo.getSelectedItem();
@@ -217,6 +380,75 @@ public class Settings extends JDialog {
                 applyThemeToParent();
             }
         });
+    }
+
+    private void expandAllNavRows() {
+        for (int i = 0; i < navTree.getRowCount(); i++) {
+            navTree.expandRow(i);
+        }
+    }
+
+    private void selectPageNode(String pageKey) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+        Enumeration<TreeNode> en = root.depthFirstEnumeration();
+        while (en.hasMoreElements()) {
+            DefaultMutableTreeNode n = (DefaultMutableTreeNode) en.nextElement();
+            if (n.getUserObject() instanceof PageRef pr && pageKey.equals(pr.cardKey())) {
+                TreePath tp = new TreePath(n.getPath());
+                navTree.setSelectionPath(tp);
+                navTree.scrollPathToVisible(tp);
+                return;
+            }
+        }
+    }
+
+    private void applyNavSearch() {
+        String q = searchField.getText().trim().toLowerCase();
+        if (q.isEmpty()) {
+            return;
+        }
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+        Enumeration<TreeNode> en = root.depthFirstEnumeration();
+        while (en.hasMoreElements()) {
+            DefaultMutableTreeNode n = (DefaultMutableTreeNode) en.nextElement();
+            if (!(n.getUserObject() instanceof PageRef pr)) {
+                continue;
+            }
+            String page = pr.cardKey();
+            String hay = (UiMessages.settingsPageTitle(page) + " "
+                    + UiMessages.settingsBreadcrumb(page) + " "
+                    + UiMessages.settingsCategoryTitle(categoryKeyForPage(page))).toLowerCase();
+            if (hay.contains(q)) {
+                TreePath tp = new TreePath(n.getPath());
+                navTree.setSelectionPath(tp);
+                navTree.scrollPathToVisible(tp);
+                return;
+            }
+        }
+    }
+
+    private static String categoryKeyForPage(String pageKey) {
+        return switch (pageKey) {
+            case PAGE_APPEARANCE -> CATEGORY_APPEARANCE;
+            case PAGE_SYNTAX -> CATEGORY_EDITOR;
+            case PAGE_FREEMARKER -> CATEGORY_FREEMARKER;
+            default -> "";
+        };
+    }
+
+    private JPanel labeledRow(JLabel label, JComboBox<String> combo) {
+        Font rowFont = label.getFont() != null ? label.getFont().deriveFont(12f) : new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+        label.setFont(rowFont);
+        label.setPreferredSize(new Dimension(180, 26));
+        combo.setFont(rowFont);
+        combo.setMaximumSize(new Dimension(320, 28));
+
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        row.add(label, BorderLayout.WEST);
+        row.add(combo, BorderLayout.CENTER);
+        return row;
     }
 
     private void saveSettings() {
@@ -257,9 +489,9 @@ public class Settings extends JDialog {
 
     private void refreshDialogLocalized() {
         setTitle(UiMessages.settingsDialogTitle());
-        tabbedPane.setTitleAt(0, UiMessages.tabEditor());
-        tabbedPane.setTitleAt(1, UiMessages.tabSyntaxTheme());
-        tabbedPane.setTitleAt(2, UiMessages.tabFreemarker());
+        searchField.putClientProperty("JTextField.placeholderText", UiMessages.settingsSearchPlaceholder());
+        searchField.setToolTipText(UiMessages.settingsSearchTooltip());
+        helpButton.setToolTipText(UiMessages.settingsHelpTooltip());
         labelAppTheme.setText(UiMessages.labelAppTheme());
         labelUiLang.setText(UiMessages.labelUiLanguage());
         labelRsyntaxTheme.setText(UiMessages.labelRsyntaxTheme());
@@ -268,6 +500,8 @@ public class Settings extends JDialog {
         okButton.setText(UiMessages.buttonOk());
         cancelButton.setText(UiMessages.buttonCancel());
         applyButton.setText(UiMessages.buttonApply());
+        breadcrumbLabel.setText(UiMessages.settingsBreadcrumb(selectedPageKey));
+        navTree.repaint();
     }
 
     private static final Map<String, String> THEME_FILE_TO_DISPLAY = THEME_DISPLAY_TO_FILE.entrySet()

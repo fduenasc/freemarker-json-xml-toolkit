@@ -20,6 +20,13 @@ package co.com.leronarenwino.i18n;
 import co.com.leronarenwino.UiTextKeys;
 import utils.SettingsSingleton;
 
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_APPEARANCE;
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_EDITOR;
+import static co.com.leronarenwino.settings.SettingsNav.CATEGORY_FREEMARKER;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_APPEARANCE;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_FREEMARKER;
+import static co.com.leronarenwino.settings.SettingsNav.PAGE_SYNTAX;
+
 public final class UiMessages {
 
     private UiMessages() {
@@ -275,6 +282,57 @@ public final class UiMessages {
         return es() ? "FreeMarker" : "FreeMarker";
     }
 
+    /** Category or root row in the settings navigation tree (IntelliJ-style sidebar). */
+    public static String settingsCategoryTitle(String categoryKey) {
+        return switch (categoryKey) {
+            case CATEGORY_APPEARANCE -> es() ? "Apariencia y comportamiento" : "Appearance & Behavior";
+            case CATEGORY_EDITOR -> es() ? "Editor" : "Editor";
+            case CATEGORY_FREEMARKER -> "FreeMarker";
+            default -> categoryKey;
+        };
+    }
+
+    /** Leaf row title under a category. */
+    public static String settingsPageTitle(String pageKey) {
+        return switch (pageKey) {
+            case PAGE_APPEARANCE -> es() ? "Apariencia" : "Appearance";
+            case PAGE_SYNTAX -> es() ? "Resaltado de sintaxis" : "Syntax highlighting";
+            case PAGE_FREEMARKER -> es() ? "General" : "General";
+            default -> pageKey;
+        };
+    }
+
+    /** Breadcrumb above the settings detail panel (category › page). */
+    public static String settingsBreadcrumb(String pageKey) {
+        return switch (pageKey) {
+            case PAGE_APPEARANCE ->
+                    es() ? "Apariencia y comportamiento › Apariencia" : "Appearance & Behavior › Appearance";
+            case PAGE_SYNTAX -> es() ? "Editor › Resaltado de sintaxis" : "Editor › Syntax highlighting";
+            case PAGE_FREEMARKER -> es() ? "FreeMarker › General" : "FreeMarker › General";
+            default -> "";
+        };
+    }
+
+    public static String settingsSearchPlaceholder() {
+        return es() ? "Buscar" : "Search";
+    }
+
+    public static String settingsSearchTooltip() {
+        return es()
+                ? "Buscar en la lista de opciones"
+                : "Search options in the list";
+    }
+
+    public static String settingsHelpTooltip() {
+        return es() ? "Ayuda" : "Help";
+    }
+
+    public static String settingsHelpMessage() {
+        return es()
+                ? "Use el panel izquierdo para elegir una sección. Los cambios en tema o sintaxis se aplican al pulsar Aplicar o Aceptar."
+                : "Use the left panel to pick a section. Theme and syntax changes apply when you click Apply or OK.";
+    }
+
     public static String labelAppTheme() {
         return es() ? "Tema de la interfaz:" : "Theme:";
     }
@@ -308,7 +366,7 @@ public final class UiMessages {
     }
 
     public static String themeApplyFailed(String msg) {
-        return es() ? "No se pudo aplicar el tema: " : "Failed to apply theme: ";
+        return (es() ? "No se pudo aplicar el tema: " : "Failed to apply theme: ") + msg;
     }
 
     public static String findSearchPlaceholder() {
