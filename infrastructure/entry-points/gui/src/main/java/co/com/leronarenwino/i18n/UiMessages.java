@@ -333,6 +333,26 @@ public final class UiMessages {
                 : "Use the left panel to pick a section. Theme and syntax changes apply when you click Apply or OK.";
     }
 
+    public static String settingsRestoreDefaults() {
+        return es() ? "Restaurar valores por defecto" : "Restore defaults";
+    }
+
+    public static String settingsRestoreDefaultsTooltip() {
+        return es()
+                ? "Volver a tema IntelliJ, inglés, IDEA, locale en_US y UTC (use Aplicar o Aceptar para guardar)"
+                : "Reset to IntelliJ theme, English, IDEA scheme, en_US locale, and UTC (click Apply or OK to save)";
+    }
+
+    public static String settingsRestoreDefaultsConfirm() {
+        return es()
+                ? "¿Restaurar en esta ventana los valores por defecto de la aplicación? (Aún no se guardan en el disco hasta Aplicar o Aceptar.)"
+                : "Restore default values in this dialog? (Nothing is saved to disk until you click Apply or OK.)";
+    }
+
+    public static String settingsSearchNoResults() {
+        return es() ? "Sin coincidencias" : "No matches";
+    }
+
     public static String labelAppTheme() {
         return es() ? "Tema de la interfaz:" : "Theme:";
     }
