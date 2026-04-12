@@ -20,8 +20,11 @@ package co.com.leronarenwino;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +69,11 @@ public class TemplateValidator {
 
     private final TemplateProcessor templateProcessor;
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** 2 spaces per level, LF newlines — matches {@code JsonTextAreaConfigurer.JSON_INDENT_SPACES}. */
+    private static final ObjectWriter PRETTY_JSON_WRITER = MAPPER.writer(new DefaultPrettyPrinter()
+            .withObjectIndenter(new DefaultIndenter("  ", DefaultIndenter.SYS_LF))
+            .withArrayIndenter(new DefaultIndenter("  ", DefaultIndenter.SYS_LF)));
 
     public TemplateValidator(TemplateProcessor templateProcessor) {
         this.templateProcessor = templateProcessor;
@@ -181,8 +189,7 @@ public class TemplateValidator {
     public static String formatFlexibleJson(String input) {
         try {
             Object json = MAPPER.readValue(input, Object.class);
-            String pretty = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-            return pretty.replace("\r\n", "\n");
+            return normalizePrettyJson(PRETTY_JSON_WRITER.writeValueAsString(json));
         } catch (Exception e1) {
             try {
                 String toParse = input;
@@ -191,12 +198,19 @@ public class TemplateValidator {
                 }
                 String unescaped = MAPPER.readValue(toParse, String.class);
                 Object json = MAPPER.readValue(unescaped, Object.class);
-                String pretty = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-                return pretty.replace("\r\n", "\n");
+                return normalizePrettyJson(PRETTY_JSON_WRITER.writeValueAsString(json));
             } catch (Exception e2) {
                 throw new IllegalArgumentException(UiTextKeys.jsonFormatFailurePayload(e2.getMessage()));
             }
         }
+    }
+
+    private static String normalizePrettyJson(String pretty) {
+        String s = pretty.replace("\r\n", "\n");
+        if (!s.endsWith("\n")) {
+            s = s + "\n";
+        }
+        return s;
     }
 
     public static String formatFreemarkerTemplateCombined(String template) {

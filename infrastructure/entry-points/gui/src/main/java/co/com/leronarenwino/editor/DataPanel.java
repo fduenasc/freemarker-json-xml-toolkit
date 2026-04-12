@@ -44,6 +44,7 @@ public class DataPanel extends EditorPanel {
     @Override
     protected void setComponents() {
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
+        JsonTextAreaConfigurer.apply(textArea);
         textArea.setCodeFoldingEnabled(true);
         textArea.setLineWrap(isWrapEnabled);
         textArea.setWrapStyleWord(isWrapEnabled);

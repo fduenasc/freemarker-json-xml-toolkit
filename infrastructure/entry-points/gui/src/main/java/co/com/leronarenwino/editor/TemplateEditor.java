@@ -26,6 +26,7 @@ import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import utils.SettingsSingleton;
 
 import javax.swing.*;
@@ -336,6 +337,9 @@ public class TemplateEditor extends JFrame {
         for (RSyntaxTextArea area : textAreas) {
             try {
                 UiConfig.applyRSyntaxTheme(area, themePath, parent);
+                if (SyntaxConstants.SYNTAX_STYLE_JSON.equals(area.getSyntaxEditingStyle())) {
+                    JsonTextAreaConfigurer.apply(area);
+                }
             } catch (Exception ex) {
                 LOG.log(Level.WARNING, "Could not apply RSyntaxTextArea theme: " + themePath, ex);
             }

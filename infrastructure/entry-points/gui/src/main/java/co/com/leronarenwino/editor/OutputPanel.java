@@ -48,6 +48,7 @@ public class OutputPanel extends EditorPanel {
     protected void setComponents() {
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
         textArea.setEditable(false);
+        JsonTextAreaConfigurer.apply(textArea);
         textArea.setLineWrap(isWrapEnabled);
         textArea.setWrapStyleWord(isWrapEnabled);
         textArea.setHighlightCurrentLine(false);
