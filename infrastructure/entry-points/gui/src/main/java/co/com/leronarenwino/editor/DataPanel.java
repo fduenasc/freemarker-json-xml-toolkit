@@ -18,20 +18,17 @@
 package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.TemplateValidator;
-import co.com.leronarenwino.TemplateValidator.EditorJsonSyntaxFailure;
 import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.JsonDataModelSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.util.Objects;
 
 public class DataPanel extends EditorPanel {
     private static DataPanel instance;
-    private JButton validateDataModelButton;
     private JButton formatDataModelButton;
 
     private DataPanel() {
@@ -40,8 +37,6 @@ public class DataPanel extends EditorPanel {
 
     @Override
     protected void initComponents() {
-        validateDataModelButton = createStyledButton("🔍", "Validate data model JSON (no changes)", ButtonStyleUtil.ButtonStyle.PRIMARY);
-        validateDataModelButton.setToolTipText("Validate JSON without formatting");
         formatDataModelButton = createStyledButton("🔨", "Format data model JSON", ButtonStyleUtil.ButtonStyle.SUCCESS);
         formatDataModelButton.setToolTipText("Pretty-print JSON (invalid JSON shows an error)");
     }
@@ -60,34 +55,16 @@ public class DataPanel extends EditorPanel {
 
     @Override
     protected void addComponents() {
-        bottomPanel.add(validateDataModelButton);
-        bottomPanel.add(Box.createVerticalStrut(5));
         bottomPanel.add(formatDataModelButton);
         bottomPanel.add(Box.createVerticalStrut(5));
         bottomPanel.add(toggleWrapButton);
     }
 
     /**
-     * Re-runs syntax check and forwards to the status sink (e.g. main window status bar).
+     * Re-runs JSON syntax check and updates the panel footer.
      */
     public void refreshJsonValidationStatus() {
         emitStatus(checkCurrentDataModelJson());
-    }
-
-    /**
-     * Validates JSON, updates status, selects the error span when possible, and scrolls it into view.
-     */
-    public void validateDataModelAndFocusError() {
-        String json = editorSnapshotText();
-        JsonSyntaxCheck check = TemplateValidator.checkDataModelJsonSyntax(json);
-        emitStatus(check);
-        if (check.syntaxValid()) {
-            return;
-        }
-        EditorJsonSyntaxFailure fail = TemplateValidator.findJsonSyntaxFailureInFullText(json);
-        if (fail != null) {
-            focusJsonSyntaxFailure(fail);
-        }
     }
 
     private JsonSyntaxCheck checkCurrentDataModelJson() {
@@ -99,41 +76,6 @@ public class DataPanel extends EditorPanel {
      */
     private String editorSnapshotText() {
         return Objects.requireNonNullElse(textArea.getText(), "");
-    }
-
-    private void focusJsonSyntaxFailure(EditorJsonSyntaxFailure fail) {
-        int len = textArea.getDocument().getLength();
-        if (len <= 0) {
-            return;
-        }
-        int pos = -1;
-        if (fail.hasCharOffset() && fail.charOffset() >= 0 && fail.charOffset() < len) {
-            pos = (int) fail.charOffset();
-        } else if (fail.line1Based() > 0) {
-            try {
-                int lineIndex = fail.line1Based() - 1;
-                int lineStart = textArea.getLineStartOffset(lineIndex);
-                int lineEnd = textArea.getLineEndOffset(lineIndex);
-                int col = Math.max(0, fail.column1Based() - 1);
-                pos = Math.min(lineStart + col, Math.max(lineStart, lineEnd - 1));
-            } catch (BadLocationException ignored) {
-                // ignore
-            }
-        }
-        if (pos < 0) {
-            return;
-        }
-        textArea.requestFocusInWindow();
-        int end = Math.min(pos + 1, len);
-        textArea.select(pos, end);
-        try {
-            Rectangle r = textArea.modelToView(pos);
-            if (r != null) {
-                textArea.scrollRectToVisible(r);
-            }
-        } catch (BadLocationException ignored) {
-            // ignore
-        }
     }
 
     private void emitStatus(JsonSyntaxCheck check) {
@@ -166,10 +108,6 @@ public class DataPanel extends EditorPanel {
             instance = new DataPanel();
         }
         return instance;
-    }
-
-    public JButton getValidateDataModelButton() {
-        return validateDataModelButton;
     }
 
     public JButton getFormatDataModelButton() {

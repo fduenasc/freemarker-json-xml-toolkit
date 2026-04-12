@@ -262,7 +262,6 @@ public class TemplateEditor extends JFrame {
         });
 
         // Button actions
-        dataPanel.getValidateDataModelButton().addActionListener(e -> dataPanel.validateDataModelAndFocusError());
         dataPanel.getFormatDataModelButton().addActionListener(e -> formatDataInputJson());
         installDataModelValidationDebounce();
         installTemplateValidationDebounce();
