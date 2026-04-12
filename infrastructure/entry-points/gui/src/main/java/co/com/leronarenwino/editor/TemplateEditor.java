@@ -160,7 +160,7 @@ public class TemplateEditor extends JFrame {
         templatePanel = TemplatePanel.getInstance();
 
         // Data input
-        dataPanel = DataPanel.getInstance();
+        dataPanel = new DataPanel();
 
         // Expected fields input
         expectedFieldsPanel = ExpectedFieldsPanel.getInstance();

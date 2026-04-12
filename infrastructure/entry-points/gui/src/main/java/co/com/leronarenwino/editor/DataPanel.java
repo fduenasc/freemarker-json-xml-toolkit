@@ -28,10 +28,9 @@ import java.awt.*;
 import java.util.Objects;
 
 public class DataPanel extends EditorPanel {
-    private static DataPanel instance;
     private JButton formatDataModelButton;
 
-    private DataPanel() {
+    DataPanel() {
         super("Data Model");
     }
 
@@ -101,13 +100,6 @@ public class DataPanel extends EditorPanel {
             return;
         }
         setEditorFooterStatus("JSON válido", new Color(0, 128, 0), null);
-    }
-
-    public static DataPanel getInstance() {
-        if (instance == null) {
-            instance = new DataPanel();
-        }
-        return instance;
     }
 
     public JButton getFormatDataModelButton() {
