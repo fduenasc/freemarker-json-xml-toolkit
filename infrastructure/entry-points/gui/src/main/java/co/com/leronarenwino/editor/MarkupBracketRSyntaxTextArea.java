@@ -36,18 +36,25 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 
 /**
- * Bracket matching for {@code {[()]}} uses RSyntaxTextArea's normal paint path (behind text).
- * {@code <} / {@code >} as {@link org.fife.ui.rsyntaxtextarea.Token#MARKUP_TAG_DELIMITER} are matched separately
- * and drawn with a translucent fill so glyphs stay readable. Caret handling skips {@link RSyntaxTextArea}'s
- * {@code fireCaretUpdate} so angle and separator brackets are never both active.
+ * Bracket matching for {@code {[()]}} and {@code <>} both use the same translucent overlay
+ * ({@link #paintMarkupBracketOverlay}) after the text is painted; RSyntaxTextArea's default bracket fill is cleared
+ * so styles stay consistent. Caret handling skips {@link RSyntaxTextArea}'s {@code fireCaretUpdate} so angle and
+ * separator brackets are never both active.
  */
 public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
 
     private static final float MARKUP_BRACKET_FILL_ALPHA = 0.24f;
 
-    private final Point sharedBracket = new Point();
+    /**
+     * Lazily created: {@link RSyntaxTextArea} constructor calls {@link #setBracketMatchingEnabled} before subclass
+     * field initializers run, so a {@code final Point = new Point()} would still be null during that call.
+     */
+    private Point sharedBracket;
     private Rectangle markupMatchRect;
     private Rectangle markupDotRect;
+    /** {@code {[()]}} drawn with the same translucent overlay as {@code <>}; RSyntax native match rects stay cleared. */
+    private Rectangle standardMatchRect;
+    private Rectangle standardDotRect;
 
     @Override
     public void setBracketMatchingEnabled(boolean enabled) {
@@ -56,6 +63,8 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
             RSyntaxBracketStateAccessor.clearBracketHighlightState(this);
             markupMatchRect = null;
             markupDotRect = null;
+            standardMatchRect = null;
+            standardDotRect = null;
             repaint();
         } else {
             updateCombinedBracketMatching();
@@ -108,6 +117,8 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
             RSyntaxBracketStateAccessor.clearBracketHighlightState(this);
             markupMatchRect = null;
             markupDotRect = null;
+            standardMatchRect = null;
+            standardDotRect = null;
             repaint();
             return;
         }
@@ -116,12 +127,18 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
         }
     }
 
-    private void repaintMarkupAreas() {
+    private void repaintBracketOverlayAreas() {
         if (markupMatchRect != null) {
             repaint(inflate(markupMatchRect, 3));
         }
         if (markupDotRect != null) {
             repaint(inflate(markupDotRect, 3));
+        }
+        if (standardMatchRect != null) {
+            repaint(inflate(standardMatchRect, 3));
+        }
+        if (standardDotRect != null) {
+            repaint(inflate(standardDotRect, 3));
         }
     }
 
@@ -130,9 +147,14 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
     }
 
     private void updateCombinedBracketMatching() {
-        repaintMarkupAreas();
+        if (sharedBracket == null) {
+            sharedBracket = new Point();
+        }
+        repaintBracketOverlayAreas();
         markupMatchRect = null;
         markupDotRect = null;
+        standardMatchRect = null;
+        standardDotRect = null;
 
         if (!isBracketMatchingEnabled()) {
             return;
@@ -153,10 +175,19 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
             }
         } else {
             RSyntaxUtilities.getMatchingBracketPosition(this, sharedBracket);
-            RSyntaxBracketStateAccessor.applyStandardMatch(this, sharedBracket, getPaintMatchedBracketPair());
+            RSyntaxBracketStateAccessor.clearBracketHighlightState(this);
+            if (sharedBracket.y >= 0) {
+                try {
+                    standardMatchRect = modelToView(sharedBracket.y);
+                    standardDotRect = getPaintMatchedBracketPair() ? modelToView(sharedBracket.x) : null;
+                } catch (BadLocationException ex) {
+                    standardMatchRect = null;
+                    standardDotRect = null;
+                }
+            }
         }
 
-        repaintMarkupAreas();
+        repaintBracketOverlayAreas();
         repaint();
     }
 
@@ -166,7 +197,7 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
         if (!isBracketMatchingEnabled()) {
             return;
         }
-        if (markupMatchRect == null && markupDotRect == null) {
+        if (markupMatchRect == null && markupDotRect == null && standardMatchRect == null && standardDotRect == null) {
             return;
         }
         Graphics2D g2d = (Graphics2D) g.create();
@@ -176,6 +207,12 @@ public class MarkupBracketRSyntaxTextArea extends RSyntaxTextArea {
             }
             if (markupDotRect != null && getPaintMatchedBracketPair()) {
                 paintMarkupBracketOverlay(g2d, this, markupDotRect);
+            }
+            if (standardMatchRect != null) {
+                paintMarkupBracketOverlay(g2d, this, standardMatchRect);
+            }
+            if (standardDotRect != null && getPaintMatchedBracketPair()) {
+                paintMarkupBracketOverlay(g2d, this, standardDotRect);
             }
         } finally {
             g2d.dispose();

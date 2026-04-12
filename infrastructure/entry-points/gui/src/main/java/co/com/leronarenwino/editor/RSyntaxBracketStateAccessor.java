@@ -19,15 +19,13 @@ package co.com.leronarenwino.editor;
 
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
-import javax.swing.text.BadLocationException;
 import java.awt.Point;
-import java.awt.Rectangle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
- * Applies the same fields {@link RSyntaxTextArea} updates in {@code doBracketMatching()} so that
- * {@code {[()]}} highlights paint in the correct layer (behind glyphs). Package-private API of RSyntaxTextArea.
+ * Clears RSyntaxTextArea internal bracket-match state so default bracket painting is suppressed when
+ * {@link MarkupBracketRSyntaxTextArea} draws a unified overlay for {@code {[()]}} and {@code <>}.
  */
 final class RSyntaxBracketStateAccessor {
 
@@ -75,43 +73,6 @@ final class RSyntaxBracketStateAccessor {
                 stop.invoke(timer);
             }
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /**
-     * Mirrors successful {@code doBracketMatching} updates (without popup / animation restart beyond stop+optional).
-     */
-    static void applyStandardMatch(RSyntaxTextArea ta, Point bracketInfo, boolean paintPair) {
-        try {
-            if (bracketInfo == null || bracketInfo.y < 0) {
-                clearBracketHighlightState(ta);
-                return;
-            }
-            Point bi = (Point) BRACKET_INFO.get(ta);
-            if (bi == null) {
-                bi = new Point();
-                BRACKET_INFO.set(ta, bi);
-            }
-            bi.setLocation(bracketInfo.x, bracketInfo.y);
-
-            Rectangle matchRect = ta.modelToView(bracketInfo.y);
-            setField(ta, MATCH, matchRect);
-            if (paintPair) {
-                setField(ta, DOT_RECT, ta.modelToView(bracketInfo.x));
-            } else {
-                setField(ta, DOT_RECT, null);
-            }
-            LAST_BRACKET_MATCH_POS.setInt(ta, bracketInfo.y);
-
-            Object timer = BRACKET_REPAINT_TIMER.get(ta);
-            if (timer != null && ta.getAnimateBracketMatching()) {
-                Method stop = timer.getClass().getMethod("stop");
-                stop.invoke(timer);
-                Method restart = timer.getClass().getMethod("restart");
-                restart.invoke(timer);
-            }
-        } catch (ReflectiveOperationException | BadLocationException e) {
             throw new IllegalStateException(e);
         }
     }
