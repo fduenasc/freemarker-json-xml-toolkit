@@ -19,6 +19,7 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.TemplateValidator;
 import co.com.leronarenwino.TemplateValidator.JsonSyntaxCheck;
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.editor.syntax.JsonDataModelSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
@@ -31,13 +32,13 @@ public class DataPanel extends EditorPanel {
     private JButton formatDataModelButton;
 
     DataPanel() {
-        super("Data Model");
+        super(UiMessages.panelDataModel());
     }
 
     @Override
     protected void initComponents() {
-        formatDataModelButton = createStyledButton("🔨", "Format data model JSON", ButtonStyleUtil.ButtonStyle.SUCCESS);
-        formatDataModelButton.setToolTipText("Pretty-print JSON (invalid JSON shows an error)");
+        formatDataModelButton = createStyledButton("🔨", UiMessages.formatDataModelAccessible(), ButtonStyleUtil.ButtonStyle.SUCCESS);
+        formatDataModelButton.setToolTipText(UiMessages.formatDataModelTooltip());
     }
 
     @Override
@@ -83,23 +84,31 @@ public class DataPanel extends EditorPanel {
 
     private void applyJsonCheckToFooter(JsonSyntaxCheck check) {
         if (!check.syntaxValid()) {
-            StringBuilder sb = new StringBuilder("Invalid JSON");
+            StringBuilder sb = new StringBuilder(UiMessages.invalidJson());
             if (check.line() > 0) {
-                sb.append(" (Ln ").append(check.line());
+                sb.append(" (").append(UiMessages.footerLineAbbrev()).append(' ').append(check.line());
                 if (check.column() > 0) {
-                    sb.append(", Col ").append(check.column());
+                    sb.append(", ").append(UiMessages.footerColAbbrev()).append(' ').append(check.column());
                 }
                 sb.append(')');
             }
-            String tip = check.message();
+            String tip = UiMessages.resolveDataModelMessage(check.message());
             setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
             return;
         }
         if (check.message() != null && !check.message().isEmpty()) {
-            setEditorFooterStatus(check.message(), new Color(180, 120, 0), null);
+            setEditorFooterStatus(UiMessages.resolveDataModelMessage(check.message()), new Color(180, 120, 0), null);
             return;
         }
-        setEditorFooterStatus("Valid JSON", new Color(0, 128, 0), null);
+        setEditorFooterStatus(UiMessages.validJson(), new Color(0, 128, 0), null);
+    }
+
+    public void refreshLocalizedChrome() {
+        refreshCommonChrome();
+        setPanelTitle(UiMessages.panelDataModel());
+        formatDataModelButton.setToolTipText(UiMessages.formatDataModelTooltip());
+        formatDataModelButton.getAccessibleContext().setAccessibleName(UiMessages.formatDataModelAccessible());
+        refreshJsonValidationStatus();
     }
 
     public JButton getFormatDataModelButton() {

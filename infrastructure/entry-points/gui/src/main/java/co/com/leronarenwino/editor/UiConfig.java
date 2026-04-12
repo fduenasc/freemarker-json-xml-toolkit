@@ -20,6 +20,8 @@ package co.com.leronarenwino.editor;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Theme;
 
+import co.com.leronarenwino.i18n.UiMessages;
+
 import java.awt.*;
 import java.io.InputStream;
 
@@ -32,10 +34,10 @@ public class UiConfig {
                 Theme theme = Theme.load(in);
                 theme.apply(textArea);
             } else {
-                TemplateUtils.showCopyableErrorDialog(parent, "Theme resource not found: " + themeResourcePath);
+                TemplateUtils.showCopyableErrorDialog(parent, UiMessages.themeNotFound(themeResourcePath));
             }
         } catch (Exception e) {
-            TemplateUtils.showCopyableErrorDialog(parent, "Error loading theme: " + e.getMessage());
+            TemplateUtils.showCopyableErrorDialog(parent, UiMessages.themeLoadError(e.getMessage()));
         }
     }
 

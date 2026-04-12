@@ -136,15 +136,15 @@ public class TemplateValidator {
                 return new JsonSyntaxCheck(true, "", -1, -1);
             }
             if (root.isNull()) {
-                return new JsonSyntaxCheck(true, "Tip: use {} as root instead of null for the data model", -1, -1);
+                return new JsonSyntaxCheck(true, UiTextKeys.JSON_DATA_MODEL_NULL_ROOT, -1, -1);
             }
-            return new JsonSyntaxCheck(true, "Tip: root should be a JSON object { ... } for this app", -1, -1);
+            return new JsonSyntaxCheck(true, UiTextKeys.JSON_DATA_MODEL_NEED_OBJECT, -1, -1);
         } catch (JsonProcessingException e) {
             JsonLocation loc = e.getLocation();
             int line = loc != null ? loc.getLineNr() : -1;
             int col = loc != null ? loc.getColumnNr() : -1;
             String msg = e.getOriginalMessage() != null ? e.getOriginalMessage() : e.getMessage();
-            return new JsonSyntaxCheck(false, msg != null ? msg : "Invalid JSON", line, col);
+            return new JsonSyntaxCheck(false, msg != null ? msg : UiTextKeys.JSON_PARSE_FALLBACK, line, col);
         }
     }
 
@@ -168,10 +168,10 @@ public class TemplateValidator {
             String msg = e.getOriginalMessage() != null ? e.getOriginalMessage() : e.getMessage();
             JsonLocation loc = e.getLocation();
             if (loc == null) {
-                return new EditorJsonSyntaxFailure(msg != null ? msg : "Invalid JSON", -1, -1, -1);
+                return new EditorJsonSyntaxFailure(msg != null ? msg : UiTextKeys.JSON_PARSE_FALLBACK, -1, -1, -1);
             }
             return new EditorJsonSyntaxFailure(
-                    msg != null ? msg : "Invalid JSON",
+                    msg != null ? msg : UiTextKeys.JSON_PARSE_FALLBACK,
                     loc.getLineNr(),
                     loc.getColumnNr(),
                     loc.getCharOffset());
@@ -194,7 +194,7 @@ public class TemplateValidator {
                 String pretty = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
                 return pretty.replace("\r\n", "\n");
             } catch (Exception e2) {
-                throw new IllegalArgumentException("Invalid JSON:\n\n" + e2.getMessage());
+                throw new IllegalArgumentException(UiTextKeys.jsonFormatFailurePayload(e2.getMessage()));
             }
         }
     }

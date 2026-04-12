@@ -22,6 +22,7 @@ import co.com.leronarenwino.FreemarkerTemplateSyntaxChecker;
 import co.com.leronarenwino.TemplateValidator;
 import co.com.leronarenwino.TemplateValidator.FreemarkerTemplateSyntaxCheck;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxSupport;
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.settings.Settings;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -117,8 +118,8 @@ public class TemplateEditor extends JFrame {
             switch (theme) {
                 case "Flat Dark" -> com.formdev.flatlaf.FlatDarkLaf.setup();
                 case "Flat Light" -> com.formdev.flatlaf.FlatLightLaf.setup();
-                case "Flat IntelliJ" -> com.formdev.flatlaf.FlatIntelliJLaf.setup();
                 case "Flat Darcula" -> com.formdev.flatlaf.FlatDarculaLaf.setup();
+                default -> com.formdev.flatlaf.FlatIntelliJLaf.setup();
             }
             SwingUtilities.updateComponentTreeUI(this);
         } catch (Exception ex) {
@@ -147,11 +148,11 @@ public class TemplateEditor extends JFrame {
 
         // Menu bar and menu items
         menuBar = new JMenuBar();
-        fileMenu = new JMenu("File");
-        exitItem = new JMenuItem("Exit");
-        openSettingsItem = new JMenuItem("Settings...");
-        viewMenu = new JMenu("View");
-        toggleExpectedFieldsItem = new JCheckBoxMenuItem("Show Expected Fields Panel", SettingsSingleton.isExpectedFieldsVisible());
+        fileMenu = new JMenu(UiMessages.menuFile());
+        exitItem = new JMenuItem(UiMessages.menuExit());
+        openSettingsItem = new JMenuItem(UiMessages.menuSettings());
+        viewMenu = new JMenu(UiMessages.menuView());
+        toggleExpectedFieldsItem = new JCheckBoxMenuItem(UiMessages.menuShowExpectedFields(), SettingsSingleton.isExpectedFieldsVisible());
 
         // Left, right, and options panels
         leftPanel = new JPanel();
@@ -218,7 +219,7 @@ public class TemplateEditor extends JFrame {
         rightPanel.setLayout(new BorderLayout(5, 5));
 
         // Set default configuration to JFrame
-        setTitle("FreeMarker JSON/XML Toolkit (Apache FreeMarker 2.3.34)");
+        setTitle(UiMessages.windowTitle());
         setMinimumSize(new Dimension(600, 480));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 720);
@@ -274,10 +275,12 @@ public class TemplateEditor extends JFrame {
         outputPanel.getClearOutputButton().addActionListener(e -> outputPanel.getTextArea().setText(""));
         expectedFieldsPanel.getValidateFieldsButton().addActionListener(e -> validateOutputFields());
 
+        expectedFieldsPanel.setStatusBarSink((msg, color) -> setStatusBarText(UiMessages.statusBarExpectedFieldsCategory() + msg, color));
+
         dataPanel.refreshJsonValidationStatus();
         templatePanel.refreshTemplateSyntaxFooter();
 
-        expectedFieldsPanel.setStatusBarSink((msg, color) -> setStatusBarText("Expected fields · " + msg, color));
+        refreshUiLanguage();
 
         // Add to main panel
         addMainPanelComponents();
@@ -355,18 +358,18 @@ public class TemplateEditor extends JFrame {
             dataPanel.refreshJsonValidationStatus();
             templatePanel.refreshTemplateSyntaxFooter();
         } catch (Exception ex) {
-            outputPanel.getTextArea().setText("Error processing template: " + ex.getMessage());
+            outputPanel.getTextArea().setText(UiMessages.errorProcessingTemplate() + ex.getMessage());
             dataPanel.refreshJsonValidationStatus();
             templatePanel.refreshTemplateSyntaxFooter();
         }
     }
 
     private static String formatTemplateSyntaxErrorForOutput(FreemarkerTemplateSyntaxCheck check) {
-        StringBuilder sb = new StringBuilder("Template syntax error");
+        StringBuilder sb = new StringBuilder(UiMessages.templateSyntaxError());
         if (check.line() > 0) {
-            sb.append(" (line ").append(check.line());
+            sb.append(" (").append(UiMessages.line()).append(' ').append(check.line());
             if (check.column() > 0) {
-                sb.append(", column ").append(check.column());
+                sb.append(", ").append(UiMessages.column()).append(' ').append(check.column());
             }
             sb.append(')');
         }
@@ -481,6 +484,22 @@ public class TemplateEditor extends JFrame {
 
     public void updateSplitPaneUI() {
         mainSplitPane.setUI(createMainSplitPaneUi());
+    }
+
+    /**
+     * Updates menu titles, window title, and panel chrome for the current {@link SettingsSingleton#getUiLanguage()}.
+     */
+    public void refreshUiLanguage() {
+        setTitle(UiMessages.windowTitle());
+        fileMenu.setText(UiMessages.menuFile());
+        exitItem.setText(UiMessages.menuExit());
+        openSettingsItem.setText(UiMessages.menuSettings());
+        viewMenu.setText(UiMessages.menuView());
+        toggleExpectedFieldsItem.setText(UiMessages.menuShowExpectedFields());
+        templatePanel.refreshLocalizedChrome();
+        dataPanel.refreshLocalizedChrome();
+        outputPanel.refreshLocalizedChrome();
+        expectedFieldsPanel.refreshLocalizedChrome();
     }
 
     private static BasicSplitPaneUI createMainSplitPaneUi() {

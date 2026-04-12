@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.editor;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
@@ -29,16 +30,18 @@ public class ExpectedFieldsPanel extends EditorPanel {
     private JButton validateFieldsButton;
     private JLabel validationResultLabel;
     private BiConsumer<String, Color> statusBarSink;
+    private String validationIdleText;
 
     private ExpectedFieldsPanel() {
-        super("Expected fields");
+        super(UiMessages.panelExpectedFields());
     }
 
     @Override
     protected void initComponents() {
-        validateFieldsButton = createStyledButton("🔍", "Validate Expected Fields", ButtonStyleUtil.ButtonStyle.PRIMARY);
-        validateFieldsButton.setToolTipText("Validate Expected Fields");
-        validationResultLabel = new JLabel("Validation result will appear here");
+        validateFieldsButton = createStyledButton("🔍", UiMessages.validateExpectedFieldsAccessible(), ButtonStyleUtil.ButtonStyle.PRIMARY);
+        validateFieldsButton.setToolTipText(UiMessages.validateExpectedFieldsTooltip());
+        validationIdleText = UiMessages.validationResultPlaceholder();
+        validationResultLabel = new JLabel(validationIdleText);
         validationResultLabel.setForeground(Color.GRAY);
     }
 
@@ -88,7 +91,7 @@ public class ExpectedFieldsPanel extends EditorPanel {
 
         String expectedFieldsText = textArea.getText();
         if (expectedFieldsText.trim().isEmpty()) {
-            String msg = "No expected fields specified";
+            String msg = UiMessages.noExpectedFieldsSpecified();
             Color c = Color.GRAY;
             validationResultLabel.setText(msg);
             validationResultLabel.setForeground(c);
@@ -100,24 +103,38 @@ public class ExpectedFieldsPanel extends EditorPanel {
         try {
             java.util.List<String> missing = TemplateUtils.validateFields(output, expectedFields);
             if (missing.isEmpty()) {
-                String msg = "All expected fields are present";
+                String msg = UiMessages.allExpectedFieldsPresent();
                 Color c = new Color(0, 128, 0);
                 validationResultLabel.setText(msg);
                 validationResultLabel.setForeground(c);
                 emitStatusBar(msg, c);
             } else {
-                String msg = "Missing fields: " + String.join(", ", missing);
+                String msg = UiMessages.missingFieldsPrefix() + String.join(", ", missing);
                 Color c = Color.RED;
                 validationResultLabel.setText(msg);
                 validationResultLabel.setForeground(c);
                 emitStatusBar(msg, c);
             }
         } catch (Exception e) {
-            String msg = "Invalid JSON output";
+            String msg = UiMessages.invalidJsonOutput();
             Color c = Color.RED;
             validationResultLabel.setText(msg);
             validationResultLabel.setForeground(c);
             emitStatusBar(msg, c);
+        }
+    }
+
+    public void refreshLocalizedChrome() {
+        refreshCommonChrome();
+        setPanelTitle(UiMessages.panelExpectedFields());
+        validateFieldsButton.setToolTipText(UiMessages.validateExpectedFieldsTooltip());
+        validateFieldsButton.getAccessibleContext().setAccessibleName(UiMessages.validateExpectedFieldsAccessible());
+        if (validationResultLabel.getForeground().equals(Color.GRAY)
+                && validationResultLabel.getText().equals(validationIdleText)) {
+            validationIdleText = UiMessages.validationResultPlaceholder();
+            validationResultLabel.setText(validationIdleText);
+        } else {
+            validationIdleText = UiMessages.validationResultPlaceholder();
         }
     }
 

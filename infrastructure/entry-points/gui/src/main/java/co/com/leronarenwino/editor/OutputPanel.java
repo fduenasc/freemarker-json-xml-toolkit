@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.editor;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
@@ -30,17 +31,17 @@ public class OutputPanel extends EditorPanel {
     private JButton clearOutputButton;
 
     private OutputPanel() {
-        super("Rendered Result");
+        super(UiMessages.panelRenderedResult());
     }
 
     @Override
     protected void initComponents() {
-        processTemplateButton = createStyledButton("▶", "Evaluate the template with data", ButtonStyleUtil.ButtonStyle.PRIMARY);
-        formatJsonButton = createStyledButton("🔨", "Format output as JSON", ButtonStyleUtil.ButtonStyle.SUCCESS);
-        clearOutputButton = createStyledButton("×", "Clear output area", ButtonStyleUtil.ButtonStyle.DANGER);
-        processTemplateButton.setToolTipText("Evaluate the template with data");
-        formatJsonButton.setToolTipText("Format output as JSON");
-        clearOutputButton.setToolTipText("Clear output area");
+        processTemplateButton = createStyledButton("▶", UiMessages.processTemplateAccessible(), ButtonStyleUtil.ButtonStyle.PRIMARY);
+        formatJsonButton = createStyledButton("🔨", UiMessages.formatOutputJsonAccessible(), ButtonStyleUtil.ButtonStyle.SUCCESS);
+        clearOutputButton = createStyledButton("×", UiMessages.clearOutputAccessible(), ButtonStyleUtil.ButtonStyle.DANGER);
+        processTemplateButton.setToolTipText(UiMessages.processTemplateTooltip());
+        formatJsonButton.setToolTipText(UiMessages.formatOutputJsonTooltip());
+        clearOutputButton.setToolTipText(UiMessages.clearOutputTooltip());
     }
 
     @Override
@@ -84,6 +85,17 @@ public class OutputPanel extends EditorPanel {
 
     public JButton getProcessTemplateButton() {
         return processTemplateButton;
+    }
+
+    public void refreshLocalizedChrome() {
+        refreshCommonChrome();
+        setPanelTitle(UiMessages.panelRenderedResult());
+        processTemplateButton.setToolTipText(UiMessages.processTemplateTooltip());
+        processTemplateButton.getAccessibleContext().setAccessibleName(UiMessages.processTemplateAccessible());
+        formatJsonButton.setToolTipText(UiMessages.formatOutputJsonTooltip());
+        formatJsonButton.getAccessibleContext().setAccessibleName(UiMessages.formatOutputJsonAccessible());
+        clearOutputButton.setToolTipText(UiMessages.clearOutputTooltip());
+        clearOutputButton.getAccessibleContext().setAccessibleName(UiMessages.clearOutputAccessible());
     }
 
     @Override

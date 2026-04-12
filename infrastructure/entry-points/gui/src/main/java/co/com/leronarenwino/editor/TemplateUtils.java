@@ -18,6 +18,8 @@
 package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.TemplateValidator;
+import co.com.leronarenwino.UiTextKeys;
+import co.com.leronarenwino.i18n.UiMessages;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
 import javax.swing.*;
@@ -41,7 +43,11 @@ public class TemplateUtils {
             }
             updateLastFormatted.accept(formatted);
         } catch (Exception ex) {
-            showCopyableErrorDialog(textArea, "Invalid JSON: " + ex.getMessage());
+            String detail = ex.getMessage();
+            if (UiTextKeys.isJsonFormatFailure(detail)) {
+                detail = UiTextKeys.jsonFormatFailureDetail(detail);
+            }
+            showCopyableErrorDialog(textArea, UiMessages.invalidJsonDialogPrefix() + detail);
         }
     }
 
@@ -66,6 +72,9 @@ public class TemplateUtils {
             updateFormatted.accept(formatted);
         } catch (Exception ex) {
             String message = ex.getMessage();
+            if (UiTextKeys.isJsonFormatFailure(message)) {
+                message = UiMessages.jsonFormatErrorBody(UiTextKeys.jsonFormatFailureDetail(message));
+            }
             JTextArea errorTextArea = new JTextArea(message);
             errorTextArea.setEditable(false);
             errorTextArea.setWrapStyleWord(true);
@@ -74,11 +83,11 @@ public class TemplateUtils {
             JScrollPane scrollPane = new JScrollPane(errorTextArea);
             scrollPane.setPreferredSize(new Dimension(600, 200));
 
-            Object[] options = {"Restore last valid", "Close"};
+            Object[] options = {UiMessages.restoreLastValid(), UiMessages.close()};
             int choice = JOptionPane.showOptionDialog(
                     parent,
                     scrollPane,
-                    "Data Model Error",
+                    UiMessages.dataModelErrorTitle(),
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.ERROR_MESSAGE,
                     null,
@@ -101,7 +110,7 @@ public class TemplateUtils {
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setPreferredSize(new Dimension(600, 200));
 
-        JOptionPane.showMessageDialog(parent, scrollPane, "Format JSON Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(parent, scrollPane, UiMessages.formatJsonErrorTitle(), JOptionPane.ERROR_MESSAGE);
     }
 
     public static List<String> validateFields(String output, String[] expectedFields) throws Exception {

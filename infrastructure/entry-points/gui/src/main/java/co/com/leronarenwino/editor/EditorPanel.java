@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.editor;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import co.com.leronarenwino.utils.CaretUtil;
 import co.com.leronarenwino.utils.FindReplacePanel;
@@ -44,7 +45,7 @@ public abstract class EditorPanel extends JPanel {
         setLayout(new BorderLayout());
         textArea = new MarkupBracketRSyntaxTextArea();
         scrollPane = new RTextScrollPane(textArea, true);
-        positionLabel = new JLabel("Ln 1, Col 1");
+        positionLabel = new JLabel(UiMessages.caretLineColumn(1, 1));
         positionLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 
         editorStatusLabel = new JLabel(" ");
@@ -88,8 +89,8 @@ public abstract class EditorPanel extends JPanel {
         centerPanel.add(findReplacePanel, BorderLayout.NORTH);
         centerPanel.add(editorBodyStack, BorderLayout.CENTER);
 
-        toggleWrapButton = createStyledButton("→", "Toggle line wrap", ButtonStyleUtil.ButtonStyle.SECONDARY);
-        toggleWrapButton.setToolTipText("Toggle line wrap");
+        toggleWrapButton = createStyledButton("→", UiMessages.toggleLineWrapTooltip(), ButtonStyleUtil.ButtonStyle.SECONDARY);
+        toggleWrapButton.setToolTipText(UiMessages.toggleLineWrapTooltip());
         toggleWrapButton.addActionListener(e -> toggleWrap());
 
         initComponents();
@@ -146,6 +147,19 @@ public abstract class EditorPanel extends JPanel {
 
     public RSyntaxTextArea getTextArea() {
         return textArea;
+    }
+
+    protected void setPanelTitle(String text) {
+        titleLabel.setText(text);
+    }
+
+    /**
+     * Refreshes shared chrome (wrap tooltip, find/replace bar, caret position label) after a UI language change.
+     */
+    protected void refreshCommonChrome() {
+        toggleWrapButton.setToolTipText(UiMessages.toggleLineWrapTooltip());
+        findReplacePanel.refreshUiLanguage();
+        CaretUtil.updateCaretPosition(textArea, positionLabel);
     }
 
     protected JButton createStyledButton(String text, String tooltip, ButtonStyleUtil.ButtonStyle style) {

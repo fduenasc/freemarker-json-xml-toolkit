@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.utils;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
 import javax.swing.*;
@@ -27,9 +28,9 @@ public class CaretUtil {
         try {
             int line = textArea.getLineOfOffset(caretPos) + 1;
             int column = caretPos - textArea.getLineStartOffset(line - 1) + 1;
-            label.setText("Ln " + line + ", Col " + column);
+            label.setText(UiMessages.caretLineColumn(line, column));
         } catch (Exception ex) {
-            label.setText("Ln ?, Col ?");
+            label.setText(UiMessages.caretUnknown());
         }
     }
 }

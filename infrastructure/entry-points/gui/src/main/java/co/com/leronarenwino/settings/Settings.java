@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.settings;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
 import utils.PropertiesManager;
 import utils.SettingsSingleton;
@@ -24,9 +25,7 @@ import utils.SettingsSingleton;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static co.com.leronarenwino.config.FreemarkerConfigProvider.reloadConfiguration;
@@ -35,34 +34,32 @@ import static utils.SettingsSingleton.defaultAppProperties;
 
 public class Settings extends JDialog {
 
-    // Constants for property keys
     public static final String PROPERTIES_FILE = "config.properties";
 
-    // Main panel and tabbed pane
     private JPanel mainPanel;
     private JTabbedPane tabbedPane;
 
-    // Editor tab
     private JPanel editorPanel;
     private JComboBox<String> themeCombo;
+    private JComboBox<String> uiLanguageCombo;
+    private JLabel labelAppTheme;
+    private JLabel labelUiLang;
 
-    // FreeMarker tab
     private JPanel freemarkerPanel;
-    private BiFunction<String, JComboBox<String>, JPanel> createOption;
     private JComboBox<String> localeCombo;
     private JComboBox<String> timeZoneCombo;
+    private JLabel labelFmLocale;
+    private JLabel labelFmTz;
 
-    // Buttons
     private JPanel buttonPanel;
     private JButton cancelButton;
     private JButton okButton;
     private JButton applyButton;
 
-    // RSyntax panel for syntax highlighting themes
     private JPanel rsyntaxPanel;
     private JComboBox<String> rsyntaxThemeCombo;
+    private JLabel labelRsyntaxTheme;
 
-    // Properties for storing settings
     private Properties props;
 
     private static final Map<String, String> THEME_DISPLAY_TO_FILE = Map.of(
@@ -79,7 +76,7 @@ public class Settings extends JDialog {
 
     public Settings(JFrame parent) {
         super(parent, "Settings", true);
-        setSize(400, 250);
+        setSize(430, 310);
         setResizable(false);
         setLocationRelativeTo(parent);
 
@@ -93,25 +90,21 @@ public class Settings extends JDialog {
         mainPanel = new JPanel(new BorderLayout(0, 10));
         tabbedPane = new JTabbedPane();
 
-        // Editor tab
         editorPanel = new JPanel();
         themeCombo = new JComboBox<>(new String[]{
                 "Flat Light", "Flat Dark", "Flat IntelliJ", "Flat Darcula"
         });
+        uiLanguageCombo = new JComboBox<>(new String[]{"English", "Español"});
 
-        // FreeMarker tab
-        createOption = getOptionPanelCreator();
         freemarkerPanel = new JPanel();
         localeCombo = new JComboBox<>(new String[]{"en_US", "es_CO", "fr_FR"});
         timeZoneCombo = new JComboBox<>(new String[]{"America/Los_Angeles", "UTC"});
 
-        // Buttons
         buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         okButton = new JButton("OK");
         cancelButton = new JButton("Cancel");
         applyButton = new JButton("Apply");
 
-        // RSyntax panel for syntax highlighting themes
         rsyntaxPanel = new JPanel();
         java.util.List<String> sortedThemes = new java.util.ArrayList<>(THEME_DISPLAY_TO_FILE.keySet());
         java.util.Collections.sort(sortedThemes);
@@ -122,29 +115,46 @@ public class Settings extends JDialog {
             props = defaultAppProperties();
         }
 
+        labelAppTheme = new JLabel();
+        labelUiLang = new JLabel();
+        labelRsyntaxTheme = new JLabel();
+        labelFmLocale = new JLabel();
+        labelFmTz = new JLabel();
     }
 
     private void setComponents() {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         setContentPane(mainPanel);
 
-        // Editor panel layout
         editorPanel.setLayout(new BoxLayout(editorPanel, BoxLayout.Y_AXIS));
-        editorPanel.add(createOption.apply("Theme:", themeCombo));
+        editorPanel.add(labeledRow(labelAppTheme, themeCombo));
+        editorPanel.add(Box.createVerticalStrut(5));
+        editorPanel.add(labeledRow(labelUiLang, uiLanguageCombo));
 
-        // RSyntax panel layout
         rsyntaxPanel.setLayout(new BoxLayout(rsyntaxPanel, BoxLayout.Y_AXIS));
-        rsyntaxPanel.add(createOption.apply("RSyntax Theme:", rsyntaxThemeCombo));
+        rsyntaxPanel.add(labeledRow(labelRsyntaxTheme, rsyntaxThemeCombo));
 
-        // FreeMarker panel layout
         freemarkerPanel.setLayout(new BoxLayout(freemarkerPanel, BoxLayout.Y_AXIS));
-
-        // Set default locale and time zone from properties
         localeCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_LOCALE));
         timeZoneCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_TIME_ZONE));
-        freemarkerPanel.add(createOption.apply("Locale:", localeCombo));
+        freemarkerPanel.add(labeledRow(labelFmLocale, localeCombo));
         freemarkerPanel.add(Box.createVerticalStrut(5));
-        freemarkerPanel.add(createOption.apply("Time zone:", timeZoneCombo));
+        freemarkerPanel.add(labeledRow(labelFmTz, timeZoneCombo));
+    }
+
+    private JPanel labeledRow(JLabel label, JComboBox<String> combo) {
+        Font compactFont = new Font("SansSerif", Font.PLAIN, 11);
+        label.setFont(compactFont);
+        label.setMaximumSize(new Dimension(160, 22));
+        combo.setFont(compactFont);
+        combo.setMaximumSize(new Dimension(200, 24));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(label);
+        panel.add(Box.createHorizontalStrut(10));
+        panel.add(combo);
+        return panel;
     }
 
     private void addComponents() {
@@ -177,32 +187,28 @@ public class Settings extends JDialog {
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Set default theme
         themeCombo.addActionListener(e -> {
             String selected = (String) themeCombo.getSelectedItem();
             try {
                 ButtonStyleUtil.applyFlatLafButtonStyles();
 
-                switch (Objects.requireNonNull(selected)) {
+                switch (selected != null ? selected : SettingsSingleton.DEFAULT_THEME) {
                     case "Flat Light" -> UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatLightLaf());
                     case "Flat Dark" -> UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatDarkLaf());
-                    case "Flat IntelliJ" -> UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatIntelliJLaf());
                     case "Flat Darcula" -> UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatDarculaLaf());
+                    default -> UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatIntelliJLaf());
                 }
-                // Update UI for all windows
                 SwingUtilities.updateComponentTreeUI(getParent());
                 SwingUtilities.updateComponentTreeUI(this);
 
-                // Update the JSplitPane specifically
                 if (getParent() instanceof co.com.leronarenwino.editor.TemplateEditor editor) {
                     SwingUtilities.invokeLater(editor::updateSplitPaneUI);
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Failed to apply theme: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, UiMessages.themeApplyFailed(ex.getMessage()));
             }
         });
 
-        // Set default RSyntax theme
         rsyntaxThemeCombo.addActionListener(e -> {
             String selectedDisplay = (String) rsyntaxThemeCombo.getSelectedItem();
             String fileName = THEME_DISPLAY_TO_FILE.get(selectedDisplay);
@@ -218,6 +224,8 @@ public class Settings extends JDialog {
         props.setProperty(SettingsSingleton.FREEMARKER_LOCALE, (String) localeCombo.getSelectedItem());
         props.setProperty(SettingsSingleton.FREEMARKER_TIME_ZONE, (String) timeZoneCombo.getSelectedItem());
         props.setProperty(SettingsSingleton.APP_THEME, (String) themeCombo.getSelectedItem());
+        String uiLang = uiLanguageCombo.getSelectedIndex() == 1 ? "es" : "en";
+        props.setProperty(SettingsSingleton.UI_LANGUAGE, uiLang);
         String selectedDisplay = (String) rsyntaxThemeCombo.getSelectedItem();
         String fileName = THEME_DISPLAY_TO_FILE.get(selectedDisplay);
         props.setProperty(SettingsSingleton.RSYNTAX_THEME, fileName);
@@ -233,13 +241,33 @@ public class Settings extends JDialog {
 
         localeCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_LOCALE));
         timeZoneCombo.setSelectedItem(props.getProperty(SettingsSingleton.FREEMARKER_TIME_ZONE));
-        themeCombo.setSelectedItem(props.getProperty(SettingsSingleton.APP_THEME));
+        themeCombo.setSelectedItem(SettingsSingleton.normalizeAppTheme(props.getProperty(SettingsSingleton.APP_THEME)));
         String fileName = props.getProperty(SettingsSingleton.RSYNTAX_THEME, "idea.xml");
         String displayName = THEME_FILE_TO_DISPLAY.getOrDefault(fileName, "IDEA");
         rsyntaxThemeCombo.setSelectedItem(displayName);
         SettingsSingleton.setRSyntaxTheme(fileName);
+
+        String uil = props.getProperty(SettingsSingleton.UI_LANGUAGE, "en");
+        uiLanguageCombo.setSelectedIndex(uil.trim().toLowerCase().startsWith("es") ? 1 : 0);
+
         SettingsSingleton.setSettingsFromProperties(props);
 
+        refreshDialogLocalized();
+    }
+
+    private void refreshDialogLocalized() {
+        setTitle(UiMessages.settingsDialogTitle());
+        tabbedPane.setTitleAt(0, UiMessages.tabEditor());
+        tabbedPane.setTitleAt(1, UiMessages.tabSyntaxTheme());
+        tabbedPane.setTitleAt(2, UiMessages.tabFreemarker());
+        labelAppTheme.setText(UiMessages.labelAppTheme());
+        labelUiLang.setText(UiMessages.labelUiLanguage());
+        labelRsyntaxTheme.setText(UiMessages.labelRsyntaxTheme());
+        labelFmLocale.setText(UiMessages.labelLocale());
+        labelFmTz.setText(UiMessages.labelTimeZone());
+        okButton.setText(UiMessages.buttonOk());
+        cancelButton.setText(UiMessages.buttonCancel());
+        applyButton.setText(UiMessages.buttonApply());
     }
 
     private static final Map<String, String> THEME_FILE_TO_DISPLAY = THEME_DISPLAY_TO_FILE.entrySet()
@@ -248,26 +276,10 @@ public class Settings extends JDialog {
     private void applyThemeToParent() {
         if (getParent() instanceof co.com.leronarenwino.editor.TemplateEditor editor) {
             editor.paintComponents();
+            editor.refreshUiLanguage();
             editor.repaint();
 
             SwingUtilities.invokeLater(editor::updateSplitPaneUI);
         }
-    }
-
-    private static BiFunction<String, JComboBox<String>, JPanel> getOptionPanelCreator() {
-        Font compactFont = new Font("SansSerif", Font.PLAIN, 11);
-        return (labelText, comboBox) -> {
-            JLabel label = new JLabel(labelText);
-            label.setMaximumSize(new Dimension(100, 20));
-            label.setFont(compactFont);
-            comboBox.setFont(compactFont);
-            comboBox.setMaximumSize(new Dimension(150, 20));
-            JPanel panel = new JPanel();
-            panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
-            panel.add(label);
-            panel.add(Box.createHorizontalStrut(10));
-            panel.add(comboBox);
-            return panel;
-        };
     }
 }

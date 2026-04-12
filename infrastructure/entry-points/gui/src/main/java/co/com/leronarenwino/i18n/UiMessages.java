@@ -1,0 +1,369 @@
+/*
+ * This file is part of FreeMarker JSON/XML Toolkit.
+ *
+ * FreeMarker JSON/XML Toolkit is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * FreeMarker JSON/XML Toolkit is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with FreeMarker JSON/XML Toolkit. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package co.com.leronarenwino.i18n;
+
+import co.com.leronarenwino.UiTextKeys;
+import utils.SettingsSingleton;
+
+public final class UiMessages {
+
+    private UiMessages() {
+    }
+
+    private static boolean es() {
+        return "es".equals(SettingsSingleton.getUiLanguage());
+    }
+
+    public static String windowTitle() {
+        return es()
+                ? "Kit FreeMarker JSON/XML (Apache FreeMarker 2.3.34)"
+                : "FreeMarker JSON/XML Toolkit (Apache FreeMarker 2.3.34)";
+    }
+
+    public static String menuFile() {
+        return es() ? "Archivo" : "File";
+    }
+
+    public static String menuExit() {
+        return es() ? "Salir" : "Exit";
+    }
+
+    public static String menuSettings() {
+        return es() ? "Configuración…" : "Settings…";
+    }
+
+    public static String menuView() {
+        return es() ? "Ver" : "View";
+    }
+
+    public static String menuShowExpectedFields() {
+        return es() ? "Mostrar panel de campos esperados" : "Show Expected Fields Panel";
+    }
+
+    public static String statusBarExpectedFieldsCategory() {
+        return es() ? "Campos esperados · " : "Expected fields · ";
+    }
+
+    public static String panelTemplate() {
+        return es() ? "Plantilla" : "Template";
+    }
+
+    public static String panelDataModel() {
+        return es() ? "Modelo de datos" : "Data Model";
+    }
+
+    public static String panelExpectedFields() {
+        return es() ? "Campos esperados" : "Expected fields";
+    }
+
+    public static String panelRenderedResult() {
+        return es() ? "Resultado renderizado" : "Rendered Result";
+    }
+
+    public static String templateOk() {
+        return es() ? "Plantilla correcta" : "Template OK";
+    }
+
+    public static String invalidTemplate() {
+        return es() ? "Plantilla no válida" : "Invalid template";
+    }
+
+    public static String validJson() {
+        return es() ? "JSON válido" : "Valid JSON";
+    }
+
+    public static String invalidJson() {
+        return es() ? "JSON no válido" : "Invalid JSON";
+    }
+
+    public static String templateSyntaxError() {
+        return es() ? "Error de sintaxis en la plantilla" : "Template syntax error";
+    }
+
+    public static String line() {
+        return es() ? "línea" : "line";
+    }
+
+    public static String column() {
+        return es() ? "columna" : "column";
+    }
+
+    public static String footerLineAbbrev() {
+        return es() ? "Ln" : "Ln";
+    }
+
+    public static String footerColAbbrev() {
+        return es() ? "Col" : "Col";
+    }
+
+    public static String errorProcessingTemplate() {
+        return es() ? "Error al procesar la plantilla: " : "Error processing template: ";
+    }
+
+    public static String resolveDataModelMessage(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return raw;
+        }
+        if (UiTextKeys.JSON_DATA_MODEL_NULL_ROOT.equals(raw)) {
+            return es()
+                    ? "Sugerencia: use {} como raíz en lugar de null para el modelo de datos"
+                    : "Tip: use {} as root instead of null for the data model";
+        }
+        if (UiTextKeys.JSON_DATA_MODEL_NEED_OBJECT.equals(raw)) {
+            return es()
+                    ? "Sugerencia: la raíz debe ser un objeto JSON { ... } en esta aplicación"
+                    : "Tip: root should be a JSON object { ... } for this app";
+        }
+        if (UiTextKeys.JSON_PARSE_FALLBACK.equals(raw)) {
+            return invalidJson();
+        }
+        return raw;
+    }
+
+    public static String invalidJsonDialogPrefix() {
+        return es() ? "JSON no válido: " : "Invalid JSON: ";
+    }
+
+    public static String formatJsonErrorTitle() {
+        return es() ? "Error al formatear JSON" : "Format JSON Error";
+    }
+
+    public static String dataModelErrorTitle() {
+        return es() ? "Error en el modelo de datos" : "Data Model Error";
+    }
+
+    public static String restoreLastValid() {
+        return es() ? "Restaurar último válido" : "Restore last valid";
+    }
+
+    public static String close() {
+        return es() ? "Cerrar" : "Close";
+    }
+
+    public static String jsonFormatErrorBody(String detail) {
+        String head = es() ? "JSON no válido:\n\n" : "Invalid JSON:\n\n";
+        return head + (detail != null ? detail : "");
+    }
+
+    public static String themeNotFound(String path) {
+        return (es() ? "No se encontró el recurso del tema: " : "Theme resource not found: ")
+                + path;
+    }
+
+    public static String themeLoadError(String msg) {
+        return (es() ? "Error al cargar el tema: " : "Error loading theme: ") + msg;
+    }
+
+    public static String toggleLineWrapTooltip() {
+        return es() ? "Alternar ajuste de línea" : "Toggle line wrap";
+    }
+
+    public static String formatTemplateAccessible() {
+        return es() ? "Formatear plantilla" : "Format Template";
+    }
+
+    public static String formatTemplateTooltip() {
+        return formatTemplateAccessible();
+    }
+
+    public static String singleLineAccessible() {
+        return es() ? "Convertir a una sola línea" : "Convert to Single Line";
+    }
+
+    public static String singleLineTooltip() {
+        return singleLineAccessible();
+    }
+
+    public static String formatDataModelAccessible() {
+        return es() ? "Formatear JSON del modelo de datos" : "Format data model JSON";
+    }
+
+    public static String formatDataModelTooltip() {
+        return es()
+                ? "JSON con sangría (si el JSON no es válido se muestra un error)"
+                : "Pretty-print JSON (invalid JSON shows an error)";
+    }
+
+    public static String processTemplateAccessible() {
+        return es() ? "Evaluar la plantilla con los datos" : "Evaluate the template with data";
+    }
+
+    public static String processTemplateTooltip() {
+        return processTemplateAccessible();
+    }
+
+    public static String formatOutputJsonAccessible() {
+        return es() ? "Formatear salida como JSON" : "Format output as JSON";
+    }
+
+    public static String formatOutputJsonTooltip() {
+        return formatOutputJsonAccessible();
+    }
+
+    public static String clearOutputAccessible() {
+        return es() ? "Borrar área de salida" : "Clear output area";
+    }
+
+    public static String clearOutputTooltip() {
+        return clearOutputAccessible();
+    }
+
+    public static String validateExpectedFieldsAccessible() {
+        return es() ? "Validar campos esperados" : "Validate Expected Fields";
+    }
+
+    public static String validateExpectedFieldsTooltip() {
+        return validateExpectedFieldsAccessible();
+    }
+
+    public static String validationResultPlaceholder() {
+        return es() ? "El resultado de la validación aparecerá aquí" : "Validation result will appear here";
+    }
+
+    public static String noExpectedFieldsSpecified() {
+        return es() ? "No hay campos esperados definidos" : "No expected fields specified";
+    }
+
+    public static String allExpectedFieldsPresent() {
+        return es() ? "Todos los campos esperados están presentes" : "All expected fields are present";
+    }
+
+    public static String missingFieldsPrefix() {
+        return es() ? "Faltan campos: " : "Missing fields: ";
+    }
+
+    public static String invalidJsonOutput() {
+        return es() ? "Salida JSON no válida" : "Invalid JSON output";
+    }
+
+    public static String caretLineColumn(int line, int col) {
+        return footerLineAbbrev() + " " + line + ", " + footerColAbbrev() + " " + col;
+    }
+
+    public static String caretUnknown() {
+        return footerLineAbbrev() + " ?, " + footerColAbbrev() + " ?";
+    }
+
+    public static String settingsDialogTitle() {
+        return es() ? "Configuración" : "Settings";
+    }
+
+    public static String tabEditor() {
+        return es() ? "Editor" : "Editor";
+    }
+
+    public static String tabSyntaxTheme() {
+        return es() ? "Tema de sintaxis" : "Syntax Theme";
+    }
+
+    public static String tabFreemarker() {
+        return es() ? "FreeMarker" : "FreeMarker";
+    }
+
+    public static String labelAppTheme() {
+        return es() ? "Tema de la interfaz:" : "Theme:";
+    }
+
+    public static String labelRsyntaxTheme() {
+        return es() ? "Tema RSyntax:" : "RSyntax Theme:";
+    }
+
+    public static String labelUiLanguage() {
+        return es() ? "Idioma de la interfaz:" : "UI language:";
+    }
+
+    public static String labelLocale() {
+        return es() ? "Configuración regional:" : "Locale:";
+    }
+
+    public static String labelTimeZone() {
+        return es() ? "Zona horaria:" : "Time zone:";
+    }
+
+    public static String buttonOk() {
+        return es() ? "Aceptar" : "OK";
+    }
+
+    public static String buttonCancel() {
+        return es() ? "Cancelar" : "Cancel";
+    }
+
+    public static String buttonApply() {
+        return es() ? "Aplicar" : "Apply";
+    }
+
+    public static String themeApplyFailed(String msg) {
+        return es() ? "No se pudo aplicar el tema: " : "Failed to apply theme: ";
+    }
+
+    public static String findSearchPlaceholder() {
+        return es() ? "Buscar" : "Search";
+    }
+
+    public static String findReplacePlaceholder() {
+        return es() ? "Reemplazar" : "Replace";
+    }
+
+    public static String findSearchFieldTooltip() {
+        return es() ? "Texto a buscar" : "Text to search for";
+    }
+
+    public static String findRegexTooltip() {
+        return es() ? "Activar búsqueda con expresiones regulares" : "Enable regular expression search";
+    }
+
+    public static String findMatchCaseTooltip() {
+        return es() ? "Coincidir mayúsculas y minúsculas" : "Match case";
+    }
+
+    public static String findPrevTooltip() {
+        return es() ? "Coincidencia anterior" : "Previous match";
+    }
+
+    public static String findNextTooltip() {
+        return es() ? "Siguiente coincidencia" : "Next match";
+    }
+
+    public static String findCloseTooltip() {
+        return es() ? "Cerrar" : "Close";
+    }
+
+    public static String findReplaceFieldTooltip() {
+        return es() ? "Texto de reemplazo" : "Text to replace with";
+    }
+
+    public static String replaceButton() {
+        return es() ? "Reemplazar" : "Replace";
+    }
+
+    public static String replaceCurrentTooltip() {
+        return es() ? "Reemplazar la coincidencia actual" : "Replace current match";
+    }
+
+    public static String replaceAllButton() {
+        return es() ? "Reemplazar todo" : "Replace All";
+    }
+
+    public static String replaceAllTooltip() {
+        return es() ? "Reemplazar todas las coincidencias" : "Replace all matches";
+    }
+
+    public static String findZeroResults() {
+        return es() ? "0 resultados" : "0 results";
+    }
+}

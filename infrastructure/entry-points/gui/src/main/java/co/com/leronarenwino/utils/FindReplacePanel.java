@@ -17,6 +17,7 @@
 
 package co.com.leronarenwino.utils;
 
+import co.com.leronarenwino.i18n.UiMessages;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
 import javax.swing.*;
@@ -31,6 +32,13 @@ public class FindReplacePanel extends JPanel {
     private final JCheckBox regexCB;
     private final JCheckBox matchCaseCB;
     private final JLabel matchInfoLabel;
+    private final JButton findPrevBtn;
+    private final JButton findNextBtn;
+    private final JButton closeBtn;
+    private final JButton replaceBtn;
+    private final JButton replaceAllBtn;
+    private String searchPlaceholderText;
+    private String replacePlaceholderText;
     private boolean replaceMode = false;
     private int currentMatchIndex = 0;
     private java.util.List<int[]> matches = java.util.Collections.emptyList();
@@ -45,20 +53,21 @@ public class FindReplacePanel extends JPanel {
         findBar = new JToolBar();
         findBar.setFloatable(false);
         searchField = new JTextField(12);
-        searchField.setToolTipText("Text to search for");
-        setPlaceholder(searchField, "Search");
+        searchField.setToolTipText(UiMessages.findSearchFieldTooltip());
+        searchPlaceholderText = UiMessages.findSearchPlaceholder();
+        setPlaceholder(searchField, searchPlaceholderText);
         regexCB = new JCheckBox(".*");
-        regexCB.setToolTipText("Enable regular expression search");
+        regexCB.setToolTipText(UiMessages.findRegexTooltip());
         matchCaseCB = new JCheckBox("Cc");
-        matchCaseCB.setToolTipText("Match case");
-        matchInfoLabel = new JLabel("0 results");
+        matchCaseCB.setToolTipText(UiMessages.findMatchCaseTooltip());
+        matchInfoLabel = new JLabel(UiMessages.findZeroResults());
         matchInfoLabel.setPreferredSize(new Dimension(70, 20));
-        JButton findPrevBtn = new JButton("↑");
-        findPrevBtn.setToolTipText("Previous match");
-        JButton findNextBtn = new JButton("↓");
-        findNextBtn.setToolTipText("Next match");
-        JButton closeBtn = new JButton("✕");
-        closeBtn.setToolTipText("Close");
+        findPrevBtn = new JButton("↑");
+        findPrevBtn.setToolTipText(UiMessages.findPrevTooltip());
+        findNextBtn = new JButton("↓");
+        findNextBtn.setToolTipText(UiMessages.findNextTooltip());
+        closeBtn = new JButton("✕");
+        closeBtn.setToolTipText(UiMessages.findCloseTooltip());
 
         findBar.add(searchField);
         findBar.add(findPrevBtn);
@@ -75,12 +84,13 @@ public class FindReplacePanel extends JPanel {
         replaceBar = new JToolBar();
         replaceBar.setFloatable(false);
         replaceField = new JTextField(12);
-        replaceField.setToolTipText("Text to replace with");
-        setPlaceholder(replaceField, "Replace");
-        JButton replaceBtn = new JButton("Replace");
-        replaceBtn.setToolTipText("Replace current match");
-        JButton replaceAllBtn = new JButton("Replace All");
-        replaceAllBtn.setToolTipText("Replace all matches");
+        replaceField.setToolTipText(UiMessages.findReplaceFieldTooltip());
+        replacePlaceholderText = UiMessages.findReplacePlaceholder();
+        setPlaceholder(replaceField, replacePlaceholderText);
+        replaceBtn = new JButton(UiMessages.replaceButton());
+        replaceBtn.setToolTipText(UiMessages.replaceCurrentTooltip());
+        replaceAllBtn = new JButton(UiMessages.replaceAllButton());
+        replaceAllBtn.setToolTipText(UiMessages.replaceAllTooltip());
         // replaceBar.add(new JLabel("Reemplazar:"));
         replaceBar.add(replaceField);
         replaceBar.add(replaceBtn);
@@ -154,6 +164,41 @@ public class FindReplacePanel extends JPanel {
         });
     }
 
+    public void refreshUiLanguage() {
+        String newSearch = UiMessages.findSearchPlaceholder();
+        swapPlaceholderText(searchField, searchPlaceholderText, newSearch);
+        searchPlaceholderText = newSearch;
+        String newReplace = UiMessages.findReplacePlaceholder();
+        swapPlaceholderText(replaceField, replacePlaceholderText, newReplace);
+        replacePlaceholderText = newReplace;
+
+        searchField.setToolTipText(UiMessages.findSearchFieldTooltip());
+        regexCB.setToolTipText(UiMessages.findRegexTooltip());
+        matchCaseCB.setToolTipText(UiMessages.findMatchCaseTooltip());
+        findPrevBtn.setToolTipText(UiMessages.findPrevTooltip());
+        findNextBtn.setToolTipText(UiMessages.findNextTooltip());
+        closeBtn.setToolTipText(UiMessages.findCloseTooltip());
+        replaceField.setToolTipText(UiMessages.findReplaceFieldTooltip());
+        replaceBtn.setText(UiMessages.replaceButton());
+        replaceBtn.setToolTipText(UiMessages.replaceCurrentTooltip());
+        replaceAllBtn.setText(UiMessages.replaceAllButton());
+        replaceAllBtn.setToolTipText(UiMessages.replaceAllTooltip());
+
+        if (isVisible()) {
+            updateMatches();
+        } else {
+            matchInfoLabel.setText(UiMessages.findZeroResults());
+        }
+    }
+
+    private void swapPlaceholderText(JTextField field, String oldPlaceholder, String newPlaceholder) {
+        if (oldPlaceholder != null && field.getText().equals(oldPlaceholder)) {
+            field.setText(newPlaceholder);
+            field.setForeground(Color.GRAY);
+        }
+        field.putClientProperty("JTextField.placeholderText", newPlaceholder);
+    }
+
     // Utility for placeholder in JTextField
     private void setPlaceholder(JTextField field, String placeholder) {
         field.putClientProperty("JTextField.placeholderText", placeholder);
@@ -225,7 +270,7 @@ public class FindReplacePanel extends JPanel {
         matches = getAllMatchesUtil(text, search, matchCase, regex);
         int total = matches.size();
         if (total == 0) {
-            matchInfoLabel.setText("0 results");
+            matchInfoLabel.setText(UiMessages.findZeroResults());
             currentMatchIndex = 0;
         } else {
             if (currentMatchIndex < 1 || currentMatchIndex > total) {

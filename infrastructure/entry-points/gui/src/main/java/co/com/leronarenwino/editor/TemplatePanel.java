@@ -19,6 +19,7 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.FreemarkerTemplateSyntaxChecker;
 import co.com.leronarenwino.TemplateValidator.FreemarkerTemplateSyntaxCheck;
+import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.editor.syntax.FreemarkerSyntaxConstants;
 import co.com.leronarenwino.editor.syntax.FreemarkerTemplateSyntaxParser;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
@@ -33,15 +34,15 @@ public class TemplatePanel extends EditorPanel {
     private JButton singleLineButton;
 
     private TemplatePanel() {
-        super("Template");
+        super(UiMessages.panelTemplate());
     }
 
     @Override
     protected void initComponents() {
-        formatTemplateButton = createStyledButton("🔨", "Format Template", ButtonStyleUtil.ButtonStyle.SUCCESS);
-        singleLineButton = createStyledButton("↔", "Convert to Single Line", ButtonStyleUtil.ButtonStyle.SECONDARY);
-        formatTemplateButton.setToolTipText("Format Template");
-        singleLineButton.setToolTipText("Convert to Single Line");
+        formatTemplateButton = createStyledButton("🔨", UiMessages.formatTemplateAccessible(), ButtonStyleUtil.ButtonStyle.SUCCESS);
+        singleLineButton = createStyledButton("↔", UiMessages.singleLineAccessible(), ButtonStyleUtil.ButtonStyle.SECONDARY);
+        formatTemplateButton.setToolTipText(UiMessages.formatTemplateTooltip());
+        singleLineButton.setToolTipText(UiMessages.singleLineTooltip());
     }
 
     @Override
@@ -70,11 +71,11 @@ public class TemplatePanel extends EditorPanel {
 
     private void emitTemplateStatus(FreemarkerTemplateSyntaxCheck check) {
         if (!check.syntaxValid()) {
-            StringBuilder sb = new StringBuilder("Invalid template");
+            StringBuilder sb = new StringBuilder(UiMessages.invalidTemplate());
             if (check.line() > 0) {
-                sb.append(" (Ln ").append(check.line());
+                sb.append(" (").append(UiMessages.footerLineAbbrev()).append(' ').append(check.line());
                 if (check.column() > 0) {
-                    sb.append(", Col ").append(check.column());
+                    sb.append(", ").append(UiMessages.footerColAbbrev()).append(' ').append(check.column());
                 }
                 sb.append(')');
             }
@@ -82,7 +83,17 @@ public class TemplatePanel extends EditorPanel {
             setEditorFooterStatus(sb.toString(), Color.RED, tip != null && !tip.isBlank() ? tip : null);
             return;
         }
-        setEditorFooterStatus("Template OK", new Color(0, 128, 0), null);
+        setEditorFooterStatus(UiMessages.templateOk(), new Color(0, 128, 0), null);
+    }
+
+    public void refreshLocalizedChrome() {
+        refreshCommonChrome();
+        setPanelTitle(UiMessages.panelTemplate());
+        formatTemplateButton.setToolTipText(UiMessages.formatTemplateTooltip());
+        formatTemplateButton.getAccessibleContext().setAccessibleName(UiMessages.formatTemplateAccessible());
+        singleLineButton.setToolTipText(UiMessages.singleLineTooltip());
+        singleLineButton.getAccessibleContext().setAccessibleName(UiMessages.singleLineAccessible());
+        refreshTemplateSyntaxFooter();
     }
 
     @Override

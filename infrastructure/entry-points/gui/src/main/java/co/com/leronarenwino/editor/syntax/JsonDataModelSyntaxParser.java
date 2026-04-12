@@ -19,6 +19,7 @@ package co.com.leronarenwino.editor.syntax;
 
 import co.com.leronarenwino.TemplateValidator;
 import co.com.leronarenwino.TemplateValidator.EditorJsonSyntaxFailure;
+import co.com.leronarenwino.i18n.UiMessages;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.parser.AbstractParser;
@@ -57,7 +58,7 @@ public class JsonDataModelSyntaxParser extends AbstractParser {
             } else if (fail.line1Based() > 0) {
                 offset = offsetFromLineColumn(doc, line0, fail.column1Based(), docLen);
             }
-            String msg = String.valueOf(fail.message());
+            String msg = UiMessages.resolveDataModelMessage(String.valueOf(fail.message()));
             if (offset >= 0 && offset < docLen) {
                 result.addNotice(new DefaultParserNotice(this, msg, line0, offset, 1));
             } else {
