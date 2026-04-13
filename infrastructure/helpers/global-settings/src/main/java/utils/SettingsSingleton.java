@@ -17,6 +17,9 @@
 
 package utils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -56,6 +59,14 @@ public class SettingsSingleton {
     public static final String EXPECTED_FIELDS_VISIBLE = "expected_fields_visible";
     private static final boolean DEFAULT_EXPECTED_FIELDS_VISIBLE = true;
     private static boolean expectedFieldsVisible = DEFAULT_EXPECTED_FIELDS_VISIBLE;
+
+    /**
+     * Newline-separated entries for output validation ({@code path} or {@code path:type}), persisted in
+     * {@code config.properties}.
+     */
+    public static final String EXPECTED_FIELDS_LIST = "expected_fields_list";
+
+    private static final List<String> expectedFieldEntries = new ArrayList<>();
 
     public static Properties defaultAppProperties() {
         Properties properties = new Properties();
@@ -114,6 +125,7 @@ public class SettingsSingleton {
         rsyntaxTheme = properties.getProperty(RSYNTAX_THEME, DEFAULT_RSYNTAX_THEME);
         uiLanguage = normalizeUiLanguage(properties.getProperty(UI_LANGUAGE, DEFAULT_UI_LANGUAGE));
         expectedFieldsVisible = Boolean.parseBoolean(properties.getProperty(EXPECTED_FIELDS_VISIBLE, String.valueOf(DEFAULT_EXPECTED_FIELDS_VISIBLE)));
+        loadExpectedFieldsFromProperty(properties.getProperty(EXPECTED_FIELDS_LIST, ""));
     }
 
     public static String getUiLanguage() {
@@ -149,6 +161,50 @@ public class SettingsSingleton {
 
     public static void setExpectedFieldsVisible(boolean visible) {
         expectedFieldsVisible = visible;
+    }
+
+    public static void loadExpectedFieldsFromProperty(String raw) {
+        expectedFieldEntries.clear();
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        for (String line : raw.split("\n", -1)) {
+            String t = line.trim();
+            if (!t.isEmpty()) {
+                expectedFieldEntries.add(t);
+            }
+        }
+    }
+
+    public static String serializeExpectedFieldsList() {
+        return String.join("\n", expectedFieldEntries);
+    }
+
+    public static List<String> getExpectedFieldEntries() {
+        return Collections.unmodifiableList(expectedFieldEntries);
+    }
+
+    public static void setExpectedFieldEntries(List<String> entries) {
+        expectedFieldEntries.clear();
+        if (entries == null) {
+            return;
+        }
+        for (String e : entries) {
+            if (e != null) {
+                String t = e.trim();
+                if (!t.isEmpty()) {
+                    expectedFieldEntries.add(t);
+                }
+            }
+        }
+    }
+
+    public static String[] expectedFieldsForValidator() {
+        return expectedFieldEntries.toArray(new String[0]);
+    }
+
+    public static int getExpectedFieldCount() {
+        return expectedFieldEntries.size();
     }
 
 }

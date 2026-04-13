@@ -52,10 +52,8 @@ public class TemplateEditor extends JFrame {
 
     private static final Logger LOG = Logger.getLogger(TemplateEditor.class.getName());
 
-    private static final int STATUS_BAR_MAX_CHARS = 160;
-
-    private JPanel statusBar;
-    private JLabel statusBarLabel;
+    /** Bottom strip: border + {@link #expectedFieldsPanel} (replaces the old global status bar). */
+    private JPanel expectedFieldsFooterWrapper;
 
     // Main container panel
     private JPanel mainPanel;
@@ -173,17 +171,15 @@ public class TemplateEditor extends JFrame {
         outputPanel = OutputPanel.getInstance();
 
         // Initialize arrays for easy access
-        textAreas = new RSyntaxTextArea[]{templatePanel.getTextArea(), dataPanel.getTextArea(), expectedFieldsPanel.getTextArea(), outputPanel.getTextArea()};
+        textAreas = new RSyntaxTextArea[]{templatePanel.getTextArea(), dataPanel.getTextArea(), outputPanel.getTextArea()};
 
         mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, true);
         mainSplitPane.setResizeWeight(0.6);
         mainSplitPane.setContinuousLayout(true);
         mainSplitPane.setBorder(null);
 
-        statusBar = new JPanel(new BorderLayout());
-        statusBarLabel = new JLabel(" ");
-        statusBarLabel.setHorizontalAlignment(SwingConstants.LEADING);
-        statusBar.add(statusBarLabel, BorderLayout.CENTER);
+        expectedFieldsFooterWrapper = new JPanel(new BorderLayout());
+        expectedFieldsFooterWrapper.add(expectedFieldsPanel, BorderLayout.CENTER);
 
     }
 
@@ -211,9 +207,9 @@ public class TemplateEditor extends JFrame {
         if (statusBorder == null) {
             statusBorder = new Color(0xC8, 0xC8, 0xC8);
         }
-        statusBar.setBorder(BorderFactory.createCompoundBorder(
+        expectedFieldsFooterWrapper.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, statusBorder),
-                BorderFactory.createEmptyBorder(5, 2, 6, 2)));
+                BorderFactory.createEmptyBorder(0, 2, 0, 2)));
 
         // Left and right panels setup
         leftPanel.setLayout(new BorderLayout(5, 5));
@@ -247,9 +243,8 @@ public class TemplateEditor extends JFrame {
         // Columns addition
         addColumnsPanelComponents();
 
-        // Bottom panel addition
+        // Bottom panel: rendered output only (expected fields live in the window footer)
         bottomPanel.add(outputPanel, BorderLayout.CENTER);
-        bottomPanel.add(expectedFieldsPanel, BorderLayout.SOUTH);
 
         // Button panel addition actions
         openSettingsItem.addActionListener(e -> {
@@ -276,7 +271,7 @@ public class TemplateEditor extends JFrame {
         outputPanel.getClearOutputButton().addActionListener(e -> outputPanel.getTextArea().setText(""));
         expectedFieldsPanel.getValidateFieldsButton().addActionListener(e -> validateOutputFields());
 
-        expectedFieldsPanel.setStatusBarSink((msg, color) -> setStatusBarText(UiMessages.statusBarExpectedFieldsCategory() + msg, color));
+        expectedFieldsPanel.setPersistSettingsRunnable(this::saveViewSettings);
 
         dataPanel.refreshJsonValidationStatus();
         templatePanel.refreshTemplateSyntaxFooter();
@@ -291,18 +286,7 @@ public class TemplateEditor extends JFrame {
     // Groups and adds all main sections to the mainPanel
     private void addMainPanelComponents() {
         mainPanel.add(mainSplitPane, BorderLayout.CENTER);
-        mainPanel.add(statusBar, BorderLayout.SOUTH);
-    }
-
-    private void setStatusBarText(String fullText, Color color) {
-        statusBarLabel.setForeground(color);
-        if (fullText.length() <= STATUS_BAR_MAX_CHARS) {
-            statusBarLabel.setText(fullText);
-            statusBarLabel.setToolTipText(null);
-        } else {
-            statusBarLabel.setText(fullText.substring(0, STATUS_BAR_MAX_CHARS - 1) + "…");
-            statusBarLabel.setToolTipText(fullText);
-        }
+        mainPanel.add(expectedFieldsFooterWrapper, BorderLayout.SOUTH);
     }
 
     // Groups and adds left-side components (template area)
@@ -475,14 +459,15 @@ public class TemplateEditor extends JFrame {
     }
 
     private void toggleExpectedFieldsPanel(boolean visible) {
-        expectedFieldsPanel.setVisible(visible);
-        bottomPanel.revalidate();
-        bottomPanel.repaint();
+        expectedFieldsFooterWrapper.setVisible(visible);
+        mainPanel.revalidate();
+        mainPanel.repaint();
     }
 
     private void saveViewSettings() {
         Properties props = loadProperties(PROPERTIES_FILE, defaultAppProperties());
         props.setProperty(SettingsSingleton.EXPECTED_FIELDS_VISIBLE, String.valueOf(SettingsSingleton.isExpectedFieldsVisible()));
+        props.setProperty(SettingsSingleton.EXPECTED_FIELDS_LIST, SettingsSingleton.serializeExpectedFieldsList());
         utils.PropertiesManager.saveProperties(PROPERTIES_FILE, props);
     }
 

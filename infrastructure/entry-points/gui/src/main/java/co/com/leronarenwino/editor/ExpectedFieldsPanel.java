@@ -19,51 +19,110 @@ package co.com.leronarenwino.editor;
 
 import co.com.leronarenwino.i18n.UiMessages;
 import co.com.leronarenwino.utils.ButtonStyleUtil;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import utils.SettingsSingleton;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.BiConsumer;
 
-public class ExpectedFieldsPanel extends EditorPanel {
+/**
+ * Footer strip for expected output fields: summary, validation message, and actions (no separate status bar).
+ */
+public class ExpectedFieldsPanel extends JPanel {
     private static ExpectedFieldsPanel instance;
+    private final JLabel titleLabel;
+    private final JLabel summaryLabel;
+    private JButton configureButton;
     private JButton validateFieldsButton;
     private JLabel validationResultLabel;
-    private BiConsumer<String, Color> statusBarSink;
     private String validationIdleText;
+    private Runnable persistSettings;
 
     private ExpectedFieldsPanel() {
-        super(UiMessages.panelExpectedFields());
-    }
+        super(new GridBagLayout());
+        setBorder(BorderFactory.createEmptyBorder(5, 6, 6, 6));
+        setOpaque(true);
 
-    @Override
-    protected void initComponents() {
-        validateFieldsButton = createStyledButton("🔍", UiMessages.validateExpectedFieldsAccessible(), ButtonStyleUtil.ButtonStyle.PRIMARY);
-        validateFieldsButton.setToolTipText(UiMessages.validateExpectedFieldsTooltip());
+        titleLabel = new JLabel(UiMessages.panelExpectedFields());
+        Font titleFont = titleLabel.getFont();
+        if (titleFont != null) {
+            titleLabel.setFont(titleFont.deriveFont(Font.BOLD));
+        }
+        titleLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        summaryLabel = new JLabel();
+        Color muted = UIManager.getColor("Label.disabledForeground");
+        if (muted == null) {
+            muted = Color.GRAY;
+        }
+        summaryLabel.setForeground(muted);
+        summaryLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        configureButton = ButtonStyleUtil.createStyledButton(
+                UiMessages.expectedFieldsConfigureButton(),
+                UiMessages.configureExpectedFieldsTooltip(),
+                ButtonStyleUtil.ButtonStyle.SECONDARY);
+        configureButton.getAccessibleContext().setAccessibleName(UiMessages.configureExpectedFieldsAccessible());
+        configureButton.setVerticalAlignment(SwingConstants.CENTER);
+
         validationIdleText = UiMessages.validationResultPlaceholder();
         validationResultLabel = new JLabel(validationIdleText);
         validationResultLabel.setForeground(Color.GRAY);
+        validationResultLabel.setHorizontalAlignment(SwingConstants.LEADING);
+        validationResultLabel.setVerticalAlignment(SwingConstants.CENTER);
+        validationResultLabel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+
+        validateFieldsButton = ButtonStyleUtil.createStyledButton("🔍", UiMessages.validateExpectedFieldsTooltip(), ButtonStyleUtil.ButtonStyle.PRIMARY);
+        validateFieldsButton.getAccessibleContext().setAccessibleName(UiMessages.validateExpectedFieldsAccessible());
+        validateFieldsButton.setVerticalAlignment(SwingConstants.CENTER);
+
+        JPanel west = new JPanel(new FlowLayout(FlowLayout.LEADING, 10, 0));
+        west.setOpaque(false);
+        west.add(titleLabel);
+        west.add(summaryLabel);
+
+        JPanel east = new JPanel(new FlowLayout(FlowLayout.TRAILING, 8, 0));
+        east.setOpaque(false);
+        east.add(configureButton);
+        east.add(validateFieldsButton);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, 0, 0, 0);
+
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        add(west, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        add(validationResultLabel, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        add(east, gbc);
+
+        configureButton.addActionListener(e -> openConfigureDialog());
+        refreshSummaryFromSettings();
     }
 
-    @Override
-    protected void setComponents() {
-        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
-        textArea.setLineWrap(false);
-        textArea.setCodeFoldingEnabled(true);
-        textArea.setWrapStyleWord(false);
-        textArea.setHighlightCurrentLine(false);
-        scrollPane.setFoldIndicatorEnabled(false);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        setEditorFooterRowVisible(false);
+    private void openConfigureDialog() {
+        Window w = SwingUtilities.getWindowAncestor(this);
+        ExpectedFieldsDialog.showDialog(w, persistSettings);
+        refreshSummaryFromSettings();
     }
 
-    @Override
-    protected void addComponents() {
-        bottomPanel.add(Box.createHorizontalStrut(10));
-        bottomPanel.add(validationResultLabel);
-        bottomPanel.add(Box.createHorizontalStrut(10));
-        bottomPanel.add(validateFieldsButton);
+    public void refreshSummaryFromSettings() {
+        int n = SettingsSingleton.getExpectedFieldCount();
+        String text = switch (n) {
+            case 0 -> UiMessages.expectedFieldsSummaryNone();
+            case 1 -> UiMessages.expectedFieldsSummaryOne();
+            default -> UiMessages.expectedFieldsSummaryMany(n);
+        };
+        summaryLabel.setText(text);
     }
 
     public static ExpectedFieldsPanel getInstance() {
@@ -78,10 +137,10 @@ public class ExpectedFieldsPanel extends EditorPanel {
     }
 
     /**
-     * Optional sink for the main window status bar (message without category prefix).
+     * Persists {@link SettingsSingleton} to disk after the configure dialog applies changes.
      */
-    public void setStatusBarSink(BiConsumer<String, Color> sink) {
-        this.statusBarSink = sink;
+    public void setPersistSettingsRunnable(Runnable persistSettings) {
+        this.persistSettings = persistSettings;
     }
 
     public void validateFields(String output) {
@@ -89,58 +148,45 @@ public class ExpectedFieldsPanel extends EditorPanel {
             output = output.replace("\\\"", "\"");
         }
 
-        String expectedFieldsText = textArea.getText();
-        if (expectedFieldsText.trim().isEmpty()) {
-            String msg = UiMessages.noExpectedFieldsSpecified();
-            Color c = Color.GRAY;
-            validationResultLabel.setText(msg);
-            validationResultLabel.setForeground(c);
-            emitStatusBar(msg, c);
+        String[] expectedFields = SettingsSingleton.expectedFieldsForValidator();
+        if (expectedFields.length == 0) {
+            setValidationMessage(UiMessages.noExpectedFieldsSpecified(), Color.GRAY);
             return;
         }
 
-        String[] expectedFields = expectedFieldsText.split("\\s*,\\s*|\\s+");
         try {
             java.util.List<String> missing = TemplateUtils.validateFields(output, expectedFields);
             if (missing.isEmpty()) {
-                String msg = UiMessages.allExpectedFieldsPresent();
-                Color c = new Color(0, 128, 0);
-                validationResultLabel.setText(msg);
-                validationResultLabel.setForeground(c);
-                emitStatusBar(msg, c);
+                setValidationMessage(UiMessages.allExpectedFieldsPresent(), new Color(0, 128, 0));
             } else {
-                String msg = UiMessages.missingFieldsPrefix() + String.join(", ", missing);
-                Color c = Color.RED;
-                validationResultLabel.setText(msg);
-                validationResultLabel.setForeground(c);
-                emitStatusBar(msg, c);
+                setValidationMessage(UiMessages.missingFieldsPrefix() + String.join(", ", missing), Color.RED);
             }
         } catch (Exception e) {
-            String msg = UiMessages.invalidJsonOutput();
-            Color c = Color.RED;
-            validationResultLabel.setText(msg);
-            validationResultLabel.setForeground(c);
-            emitStatusBar(msg, c);
+            setValidationMessage(UiMessages.invalidJsonOutput(), Color.RED);
         }
     }
 
+    private void setValidationMessage(String msg, Color color) {
+        validationResultLabel.setText(msg);
+        validationResultLabel.setForeground(color);
+        validationResultLabel.setToolTipText(msg != null && msg.length() > 72 ? msg : null);
+    }
+
     public void refreshLocalizedChrome() {
-        refreshCommonChrome();
-        setPanelTitle(UiMessages.panelExpectedFields());
+        titleLabel.setText(UiMessages.panelExpectedFields());
+        configureButton.setText(UiMessages.expectedFieldsConfigureButton());
+        configureButton.setToolTipText(UiMessages.configureExpectedFieldsTooltip());
+        configureButton.getAccessibleContext().setAccessibleName(UiMessages.configureExpectedFieldsAccessible());
         validateFieldsButton.setToolTipText(UiMessages.validateExpectedFieldsTooltip());
         validateFieldsButton.getAccessibleContext().setAccessibleName(UiMessages.validateExpectedFieldsAccessible());
+        refreshSummaryFromSettings();
         if (validationResultLabel.getForeground().equals(Color.GRAY)
                 && validationResultLabel.getText().equals(validationIdleText)) {
             validationIdleText = UiMessages.validationResultPlaceholder();
             validationResultLabel.setText(validationIdleText);
+            validationResultLabel.setToolTipText(null);
         } else {
             validationIdleText = UiMessages.validationResultPlaceholder();
-        }
-    }
-
-    private void emitStatusBar(String message, Color color) {
-        if (statusBarSink != null) {
-            statusBarSink.accept(message, color);
         }
     }
 }

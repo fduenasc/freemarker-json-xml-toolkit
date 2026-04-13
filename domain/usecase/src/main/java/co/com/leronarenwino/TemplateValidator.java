@@ -88,7 +88,7 @@ public class TemplateValidator {
         JsonNode jsonNode = MAPPER.readTree(jsonOutput);
         for (String field : expectedFields) {
             if (field.isEmpty()) continue;
-            String[] parts = field.split(":");
+            String[] parts = field.split(":", 2);
             String fieldPath = parts[0];
             String expectedType = parts.length > 1 ? parts[1].toLowerCase() : null;
             JsonNode valueNode = getNestedField(jsonNode, fieldPath);

@@ -62,10 +62,6 @@ public final class UiMessages {
         return es() ? "Mostrar panel de campos esperados" : "Show Expected Fields Panel";
     }
 
-    public static String statusBarExpectedFieldsCategory() {
-        return es() ? "Campos esperados · " : "Expected fields · ";
-    }
-
     public static String panelTemplate() {
         return es() ? "Plantilla" : "Template";
     }
@@ -236,6 +232,130 @@ public final class UiMessages {
 
     public static String validateExpectedFieldsTooltip() {
         return validateExpectedFieldsAccessible();
+    }
+
+    public static String expectedFieldsConfigureButton() {
+        return es() ? "Configurar…" : "Configure…";
+    }
+
+    public static String configureExpectedFieldsAccessible() {
+        return es() ? "Configurar campos esperados" : "Configure expected fields";
+    }
+
+    public static String configureExpectedFieldsTooltip() {
+        return es()
+                ? "Abrir el editor de campos (tabla, importación masiva y persistencia)"
+                : "Open field editor (table, bulk import, and persistence)";
+    }
+
+    public static String expectedFieldsDialogTitle() {
+        return es() ? "Campos esperados en la salida" : "Expected output fields";
+    }
+
+    public static String expectedFieldsTabTable() {
+        return es() ? "Tabla" : "Table";
+    }
+
+    public static String expectedFieldsTabImport() {
+        return es() ? "Importar texto" : "Import text";
+    }
+
+    public static String columnExpectedFieldIndex() {
+        return "#";
+    }
+
+    public static String columnExpectedFieldPath() {
+        return es() ? "Ruta (puntos)" : "Path (dot notation)";
+    }
+
+    public static String columnExpectedFieldType() {
+        return es() ? "Tipo (opcional)" : "Type (optional)";
+    }
+
+    public static String expectedFieldsTableLegend() {
+        return es()
+                ? "Cada fila es un campo. Columnas: n.º de fila, ruta JSON (puntos), tipo JSON opcional."
+                : "Each row is one field. Columns: row number, JSON path (dots), optional JSON type.";
+    }
+
+    public static String expectedFieldsAddRow() {
+        return es() ? "Añadir" : "Add";
+    }
+
+    public static String expectedFieldsModifyRow() {
+        return es() ? "Modificar" : "Edit";
+    }
+
+    public static String expectedFieldsModifyRowTooltip() {
+        return es()
+                ? "Editar la fila seleccionada (ruta y tipo)"
+                : "Edit the selected row (path and type)";
+    }
+
+    public static String expectedFieldsDeleteRow() {
+        return es() ? "Eliminar" : "Delete";
+    }
+
+    public static String expectedFieldsDeleteRowTooltip() {
+        return es() ? "Eliminar las filas seleccionadas" : "Delete the selected rows";
+    }
+
+    public static String expectedFieldsSave() {
+        return es() ? "Guardar" : "Save";
+    }
+
+    public static String expectedFieldsSaveTooltip() {
+        return es()
+                ? "Guardar la lista en la configuración (archivo config.properties)"
+                : "Save the list to settings (config.properties file)";
+    }
+
+    public static String expectedFieldsSavedMessage() {
+        return es() ? "Lista guardada correctamente." : "List saved successfully.";
+    }
+
+    public static String expectedFieldsClose() {
+        return es() ? "Cerrar" : "Close";
+    }
+
+    public static String expectedFieldsUnsavedTitle() {
+        return es() ? "Cambios sin guardar" : "Unsaved changes";
+    }
+
+    public static String expectedFieldsUnsavedMessage() {
+        return es()
+                ? "Hay cambios que no se han guardado. ¿Cerrar sin guardar?"
+                : "You have unsaved changes. Close without saving?";
+    }
+
+    public static String expectedFieldsSelectRowToEdit() {
+        return es() ? "Seleccione una fila para modificar." : "Select a row to edit.";
+    }
+
+    public static String expectedFieldsSelectRowToDelete() {
+        return es() ? "Seleccione al menos una fila para eliminar." : "Select at least one row to delete.";
+    }
+
+    public static String expectedFieldsLoadFromText() {
+        return es() ? "Sustituir tabla por este texto" : "Replace table from text";
+    }
+
+    public static String expectedFieldsImportHelp() {
+        return es()
+                ? "Separe entradas con comas, espacios o saltos de línea. Tipo opcional: ruta:tipo (string, number, boolean, object, array, null)."
+                : "Separate entries with commas, spaces, or newlines. Optional type: path:type (string, number, boolean, object, array, null).";
+    }
+
+    public static String expectedFieldsSummaryNone() {
+        return es() ? "Ningún campo configurado" : "No fields configured";
+    }
+
+    public static String expectedFieldsSummaryOne() {
+        return es() ? "1 campo configurado" : "1 field configured";
+    }
+
+    public static String expectedFieldsSummaryMany(int n) {
+        return es() ? n + " campos configurados" : n + " fields configured";
     }
 
     public static String validationResultPlaceholder() {
